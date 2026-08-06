@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Keep the CLI quiet by default: user-facing output goes through System.out/err via the Ansi
+    helper, while framework logs are only shown at WARN and above. Raise the root level or set the
+    SPRINGCLI_DEBUG environment variable when troubleshooting.
+-->
+<configuration>
+    <appender name="STDERR" class="ch.qos.logback.core.ConsoleAppender">
+        <target>System.err</target>
+        <encoder>
+            <pattern>%-5level %logger{0} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <root level="WARN">
+        <appender-ref ref="STDERR"/>
+    </root>
+</configuration>

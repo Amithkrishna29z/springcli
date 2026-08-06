@@ -1,0 +1,13 @@
+#!/bin/bash
+# Runs after the .pkg installs springcli.app into /Applications. Creates a symlink in
+# /usr/local/bin so `springcli` is immediately callable from any terminal (i.e. on PATH),
+# since a CLI app bundle is otherwise not exposed on PATH.
+set -e
+
+LAUNCHER="/Applications/springcli.app/Contents/MacOS/springcli"
+TARGET_DIR="/usr/local/bin"
+
+mkdir -p "$TARGET_DIR"
+ln -sf "$LAUNCHER" "$TARGET_DIR/springcli"
+
+exit 0

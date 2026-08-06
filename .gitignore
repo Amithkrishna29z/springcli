@@ -1,0 +1,17 @@
+target/
+dist/
+dependency-reduced-pom.xml
+*.class
+*.log
+
+# IDEs
+.idea/
+*.iml
+.vscode/
+.settings/
+.project
+.classpath
+
+# OS
+.DS_Store
+Thumbs.db
