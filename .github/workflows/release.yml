@@ -1,0 +1,82 @@
+name: Release installers
+
+# Builds a native, double-click installer for each OS and publishes them to a GitHub Release.
+# Installers can't be cross-compiled, so each is built on its own runner. Triggered by pushing a
+# version tag (e.g. `git tag v1.0.0 && git push --tags`), or manually via the Actions tab.
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build installer (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      # Windows needs Inno Setup (ISCC.exe) to build the .exe installer.
+      - name: Install Inno Setup (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          choco install innosetup -y --no-progress
+          "C:\Program Files (x86)\Inno Setup 6" | Out-File -FilePath $env:GITHUB_PATH -Append
+
+      # jpackage's .deb build needs fakeroot.
+      - name: Install fakeroot (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y fakeroot
+
+      - name: Build Windows installer (.exe)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./scripts/package-windows.ps1
+
+      - name: Build macOS installer (.pkg)
+        if: runner.os == 'macOS'
+        run: bash scripts/package-mac.sh
+
+      - name: Build Linux installer (.deb)
+        if: runner.os == 'Linux'
+        run: bash scripts/package-linux.sh deb
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: installer-${{ matrix.os }}
+          if-no-files-found: error
+          path: |
+            dist/*.exe
+            dist/*.pkg
+            dist/*.deb
+
+  release:
+    name: Publish GitHub Release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download all installers
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create Release and attach installers
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/**/*
+          generate_release_notes: true
