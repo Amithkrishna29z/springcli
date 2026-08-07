@@ -52,6 +52,7 @@ override with `--deps` in non-interactive mode.
 - 🔍 **Dependency search & listing** (`search`, `list`).
 - 📦 Downloads and extracts `starter.zip`, then deletes the archive.
 - 🩺 **Environment doctor** (`doctor`) — checks Java / Maven / Git.
+- 💾 **Saved defaults** (`config`) — persist your group id, Java version, dependencies, etc.
 - 🎨 Coloured, user-friendly progress output (auto-disabled when piped or `NO_COLOR` is set).
 - 🧩 Optional post-generation actions: `--git`, `--open` (VS Code), `--build`.
 - 🛡️ Safe ZIP extraction (path-traversal / "zip-slip" protection).
@@ -190,6 +191,27 @@ springcli search web
 ```bash
 springcli list
 ```
+
+### Saved defaults
+
+Store your preferred defaults once and every `springcli new` will use them (so you stop retyping
+your group id, Java version, etc.). Saved to `~/.springcli/config.json`.
+
+```bash
+springcli config set groupId com.acme
+springcli config set javaVersion 21
+springcli config set dependencies web,data-jpa,lombok
+springcli config list            # show all saved defaults
+springcli config get groupId
+springcli config unset dependencies
+springcli config path            # print the config file location
+```
+
+Keys: `groupId`, `javaVersion`, `language`, `packaging`, `type`, `dependencies`
+(`dependencies` is a comma-separated list).
+
+**Precedence** when creating a project: explicit flag / wizard input **&gt;** saved config **&gt;**
+built-in default. In the wizard your saved values appear as the pre-filled defaults.
 
 ### Check your environment
 

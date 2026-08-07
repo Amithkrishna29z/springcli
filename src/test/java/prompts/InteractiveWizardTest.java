@@ -1,6 +1,7 @@
 package prompts;
 
 import model.ProjectRequest;
+import model.UserConfig;
 import org.junit.jupiter.api.Test;
 import service.MetadataService;
 import support.SampleMetadata;
@@ -22,10 +23,14 @@ class InteractiveWizardTest {
 
     /** Runs the wizard with scripted input lines and a discarded output stream. */
     private ProjectRequest run(String defaultName, String... lines) {
+        return run(new UserConfig(), defaultName, lines);
+    }
+
+    private ProjectRequest run(UserConfig config, String defaultName, String... lines) {
         MetadataService md = SampleMetadata.service();
         BufferedReader in = new BufferedReader(new StringReader(String.join("\n", lines) + "\n"));
         PrintStream out = new PrintStream(new ByteArrayOutputStream(), true, StandardCharsets.UTF_8);
-        return new InteractiveWizard(md, in, out).run(defaultName);
+        return new InteractiveWizard(md, config, in, out).run(defaultName);
     }
 
     @Test
@@ -107,6 +112,27 @@ class InteractiveWizardTest {
 
         assertNotNull(r);
         assertEquals("kotlin", r.language());
+    }
+
+    @Test
+    void savedConfigDefaultsAreUsedWhenUserAcceptsDefaults() {
+        UserConfig config = new UserConfig();
+        config.setGroupId("io.acme");
+        config.setJavaVersion("17");
+        config.setLanguage("kotlin");
+        config.setDependencies(List.of("web", "validation"));
+
+        ProjectRequest r = run(config, "myapp",
+                "", "", "", "", "",   // name, group, artifact, package, description
+                "", "", "", "", "",   // type, language, packaging, boot, java
+                "",                    // finish deps
+                "");                   // confirm
+
+        assertNotNull(r);
+        assertEquals("io.acme", r.groupId());
+        assertEquals("17", r.javaVersion());
+        assertEquals("kotlin", r.language());
+        assertEquals(List.of("web", "validation"), r.dependencies());
     }
 
     @Test

@@ -15,14 +15,22 @@ class NewCommandDefaultsTest {
     }
 
     @Test
-    void resolveUsesDefaultsWhenNoneProvided() {
-        assertEquals(Defaults.DEPENDENCIES, NewCommand.resolveDependencies(List.of()));
-        assertEquals(Defaults.DEPENDENCIES, NewCommand.resolveDependencies(null));
+    void resolveUsesBuiltInDefaultsWhenNothingProvided() {
+        assertEquals(Defaults.DEPENDENCIES, NewCommand.resolveDependencies(List.of(), null));
+        assertEquals(Defaults.DEPENDENCIES, NewCommand.resolveDependencies(null, null));
+        assertEquals(Defaults.DEPENDENCIES, NewCommand.resolveDependencies(List.of(), List.of()));
     }
 
     @Test
-    void resolveUsesExplicitDepsWhenProvided() {
+    void resolveUsesConfigDefaultWhenNoExplicitDeps() {
+        assertEquals(List.of("web"), NewCommand.resolveDependencies(List.of(), List.of("web")));
+        assertEquals(List.of("web"), NewCommand.resolveDependencies(null, List.of("web")));
+    }
+
+    @Test
+    void explicitDepsTakePrecedenceOverConfigAndDefaults() {
         List<String> explicit = List.of("web", "actuator");
-        assertEquals(explicit, NewCommand.resolveDependencies(explicit));
+        assertEquals(explicit, NewCommand.resolveDependencies(explicit, null));
+        assertEquals(explicit, NewCommand.resolveDependencies(explicit, List.of("data-jpa")));
     }
 }

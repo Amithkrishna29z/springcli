@@ -3,6 +3,7 @@ package prompts;
 import config.Defaults;
 import model.Metadata;
 import model.ProjectRequest;
+import model.UserConfig;
 import service.MetadataService;
 import util.Ansi;
 
@@ -20,17 +21,27 @@ import java.util.Set;
 public class InteractiveWizard {
 
     private final MetadataService metadataService;
+    private final UserConfig config;
     private final BufferedReader in;
     private final PrintStream out;
 
     public InteractiveWizard(MetadataService metadataService) {
-        this(metadataService,
+        this(metadataService, new UserConfig());
+    }
+
+    public InteractiveWizard(MetadataService metadataService, UserConfig config) {
+        this(metadataService, config,
                 new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8)),
                 System.out);
     }
 
     public InteractiveWizard(MetadataService metadataService, BufferedReader in, PrintStream out) {
+        this(metadataService, new UserConfig(), in, out);
+    }
+
+    public InteractiveWizard(MetadataService metadataService, UserConfig config, BufferedReader in, PrintStream out) {
         this.metadataService = metadataService;
+        this.config = config == null ? new UserConfig() : config;
         this.in = in;
         this.out = out;
     }
@@ -41,17 +52,17 @@ public class InteractiveWizard {
         out.println(Ansi.bold("\nConfigure your Spring Boot project\n"));
 
         String name = ask("Project name", defaultName != null ? defaultName : md.name().defaultValue());
-        String groupId = ask("Group ID", md.groupId().defaultValue());
+        String groupId = ask("Group ID", firstNonBlank(config.getGroupId(), md.groupId().defaultValue()));
         String artifactId = ask("Artifact ID", name != null && !name.isBlank() ? name : md.artifactId().defaultValue());
         String defaultPkg = (groupId + "." + artifactId.replaceAll("[^a-zA-Z0-9]", "")).toLowerCase();
         String packageName = ask("Package name", defaultPkg);
         String description = ask("Description", md.description().defaultValue());
 
-        String type = chooseType(md);
-        String language = choose("Language", md.language(), md.language().defaultValue());
-        String packaging = choose("Packaging", md.packaging(), md.packaging().defaultValue());
+        String type = choose("Build tool", md.type(), effectiveDefault(md.type(), config.getType()));
+        String language = choose("Language", md.language(), effectiveDefault(md.language(), config.getLanguage()));
+        String packaging = choose("Packaging", md.packaging(), effectiveDefault(md.packaging(), config.getPackaging()));
         String bootVersion = choose("Spring Boot version", md.bootVersion(), md.bootVersion().defaultValue());
-        String javaVersion = choose("Java version", md.javaVersion(), md.javaVersion().defaultValue());
+        String javaVersion = choose("Java version", md.javaVersion(), effectiveDefault(md.javaVersion(), config.getJavaVersion()));
 
         List<String> dependencies = selectDependencies();
 
@@ -95,8 +106,18 @@ public class InteractiveWizard {
         return line.trim().toLowerCase().startsWith("y");
     }
 
-    private String chooseType(Metadata md) {
-        return choose("Build tool", md.type(), md.type().defaultValue());
+    /** @return the config value if it is a valid option for {@code field}, else the metadata default. */
+    private static String effectiveDefault(Metadata.SingleSelect field, String configValue) {
+        return (configValue != null && field.isValid(configValue)) ? configValue : field.defaultValue();
+    }
+
+    private static String firstNonBlank(String... values) {
+        for (String v : values) {
+            if (v != null && !v.isBlank()) {
+                return v;
+            }
+        }
+        return null;
     }
 
     private String choose(String label, Metadata.SingleSelect field, String defaultId) {
@@ -135,8 +156,10 @@ public class InteractiveWizard {
         out.println("Type a search term to find dependencies, select a number to toggle it on/off, "
                 + "then press Enter on an empty line to finish.");
 
+        List<String> seedIds = (config.getDependencies() != null && !config.getDependencies().isEmpty())
+                ? config.getDependencies() : Defaults.DEPENDENCIES;
         Set<String> selected = new LinkedHashSet<>();
-        for (String id : Defaults.DEPENDENCIES) {
+        for (String id : seedIds) {
             metadataService.findDependency(id).ifPresent(d -> selected.add(d.id()));
         }
         if (!selected.isEmpty()) {

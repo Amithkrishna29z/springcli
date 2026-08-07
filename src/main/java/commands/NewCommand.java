@@ -4,7 +4,9 @@ import cli.ServiceFactory;
 import config.Defaults;
 import exception.SpringCliException;
 import model.ProjectRequest;
+import model.UserConfig;
 import prompts.InteractiveWizard;
+import service.ConfigService;
 import service.MetadataService;
 import service.ProjectGenerator;
 import util.Ansi;
@@ -41,13 +43,13 @@ public class NewCommand implements Callable<Integer> {
     private String description;
 
     @Option(names = "--type", description = "Build type: maven-project or gradle-project.")
-    private String type = "maven-project";
+    private String type;
 
     @Option(names = "--language", description = "java, kotlin or groovy.")
-    private String language = "java";
+    private String language;
 
     @Option(names = "--packaging", description = "jar or war.")
-    private String packaging = "jar";
+    private String packaging;
 
     @Option(names = "--boot-version", description = "Spring Boot version (defaults to Initializr default).")
     private String bootVersion;
@@ -74,16 +76,21 @@ public class NewCommand implements Callable<Integer> {
 
     private final MetadataService metadataService;
     private final ProjectGenerator projectGenerator;
+    private final ConfigService configService;
+
+    private UserConfig config;
 
     public NewCommand() {
         ServiceFactory factory = new ServiceFactory();
         this.metadataService = factory.metadataService();
         this.projectGenerator = factory.projectGenerator();
+        this.configService = new ConfigService();
     }
 
-    public NewCommand(MetadataService metadataService, ProjectGenerator projectGenerator) {
+    public NewCommand(MetadataService metadataService, ProjectGenerator projectGenerator, ConfigService configService) {
         this.metadataService = metadataService;
         this.projectGenerator = projectGenerator;
+        this.configService = configService;
     }
 
     @Override
@@ -91,6 +98,7 @@ public class NewCommand implements Callable<Integer> {
         Ansi.info("Fetching Spring metadata...");
 
         metadataService.getMetadata();
+        this.config = configService.load();
 
         ProjectRequest request = nonInteractive ? buildFromFlags() : runWizard();
         if (request == null) {
@@ -108,16 +116,20 @@ public class NewCommand implements Callable<Integer> {
     }
 
     private ProjectRequest runWizard() {
-        return new InteractiveWizard(metadataService).run(name);
+        return new InteractiveWizard(metadataService, config).run(name);
     }
 
     private ProjectRequest buildFromFlags() {
         String resolvedName = name != null ? name : "demo";
         String resolvedArtifact = artifactId != null ? artifactId : resolvedName;
         String boot = bootVersion != null ? bootVersion : metadataService.getMetadata().bootVersion().defaultValue();
-        String java = javaVersion != null ? javaVersion : metadataService.getMetadata().javaVersion().defaultValue();
+        String java = firstNonBlank(javaVersion, config.getJavaVersion(), metadataService.getMetadata().javaVersion().defaultValue());
+        String group = firstNonBlank(groupId, config.getGroupId(), "com.example");
+        String lang = firstNonBlank(language, config.getLanguage(), "java");
+        String pack = firstNonBlank(packaging, config.getPackaging(), "jar");
+        String buildType = firstNonBlank(type, config.getType(), "maven-project");
 
-        List<String> deps = resolveDependencies(dependencies);
+        List<String> deps = resolveDependencies(dependencies, config.getDependencies());
 
         metadataService.validateBootVersion(boot);
         metadataService.validateJavaVersion(java);
@@ -128,20 +140,40 @@ public class NewCommand implements Callable<Integer> {
         return ProjectRequest.builder()
                 .name(resolvedName)
                 .artifactId(resolvedArtifact)
-                .groupId(groupId != null ? groupId : "com.example")
+                .groupId(group)
                 .packageName(packageName)
                 .description(description != null ? description : "Demo project for Spring Boot")
-                .type(type)
-                .language(language)
-                .packaging(packaging)
+                .type(buildType)
+                .language(lang)
+                .packaging(pack)
                 .bootVersion(boot)
                 .javaVersion(java)
                 .dependencies(deps)
                 .build();
     }
 
-    static List<String> resolveDependencies(List<String> provided) {
-        return (provided == null || provided.isEmpty()) ? Defaults.DEPENDENCIES : provided;
+    /**
+     * Resolves the effective dependency list with precedence: explicit {@code --deps} &gt; saved
+     * config default &gt; built-in {@link Defaults#DEPENDENCIES}. Package-visible for testing.
+     */
+    static List<String> resolveDependencies(List<String> provided, List<String> configDefault) {
+        if (provided != null && !provided.isEmpty()) {
+            return provided;
+        }
+        if (configDefault != null && !configDefault.isEmpty()) {
+            return configDefault;
+        }
+        return Defaults.DEPENDENCIES;
+    }
+
+    /** @return the first argument that is non-null and non-blank. */
+    private static String firstNonBlank(String... values) {
+        for (String v : values) {
+            if (v != null && !v.isBlank()) {
+                return v;
+            }
+        }
+        return null;
     }
 
     private void runPostActions(Path targetDir, ProjectRequest request) {
