@@ -7,6 +7,7 @@ import commands.GuideCommand;
 import commands.ListCommand;
 import commands.NewCommand;
 import commands.SearchCommand;
+import commands.UpdateCommand;
 import commands.VersionCommand;
 import exception.SpringCliException;
 import util.Ansi;
@@ -34,6 +35,7 @@ import picocli.CommandLine.Option;
                 ConfigCommand.class,
                 GuideCommand.class,
                 CompletionCommand.class,
+                UpdateCommand.class,
                 VersionCommand.class,
                 DoctorCommand.class
         }

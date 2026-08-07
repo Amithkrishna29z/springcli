@@ -54,6 +54,7 @@ override with `--deps` in non-interactive mode.
 - 🩺 **Environment doctor** (`doctor`) — checks Java / Maven / Git.
 - 💾 **Saved defaults** (`config`) — persist your group id, Java version, dependencies, etc.
 - 🧭 **New-user guide** (`guide`) and **shell completion** (`completion`) for bash/zsh.
+- ⬆️ **Self-update** (`update`) — check for and download a newer release.
 - 🎨 Coloured, user-friendly progress output (auto-disabled when piped or `NO_COLOR` is set).
 - 🧩 Optional post-generation actions: `--git`, `--open` (VS Code), `--build`.
 - 🛡️ Safe ZIP extraction (path-traversal / "zip-slip" protection).
@@ -219,6 +220,18 @@ built-in default. In the wizard your saved values appear as the pre-filled defau
 ```bash
 springcli doctor
 ```
+
+### Update
+
+Check whether a newer release is available, and optionally download the installer for your OS:
+
+```bash
+springcli update              # report current vs latest
+springcli update --download   # download the installer for your OS and open it
+```
+
+Because a running executable can't reliably overwrite itself, `--download` hands off to the native
+installer (which upgrades your existing install in place). Requires an internet connection.
 
 ### Getting-started guide
 

@@ -36,6 +36,7 @@ public class GuideCommand implements Callable<Integer> {
         line("source <(springcli completion)", "Enable completion in the current shell");
 
         section("Other");
+        line("springcli update", "Check for a newer version");
         line("springcli doctor", "Check your Java / Maven / Git setup");
         line("springcli --help", "Full command reference");
 
