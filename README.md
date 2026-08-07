@@ -10,6 +10,31 @@ Works on **Windows, macOS, and Linux** with a single Java 21 fat-jar.
 
 ---
 
+## Install
+
+Download the installer for your OS from the
+**[latest release](https://github.com/Amithkrishna29z/springcli/releases/latest)** and double-click
+it. Each installer bundles a Java runtime and adds `springcli` to your `PATH`, so **no Java or manual
+setup is required** — after installing, open a terminal and run `springcli`.
+
+| OS | Installer | How to install |
+|----|-----------|----------------|
+| **Windows** | [`springcli-1.0.0-setup.exe`](https://github.com/Amithkrishna29z/springcli/releases/download/v1.0.0/springcli-1.0.0-setup.exe) | Double-click and follow the wizard |
+| **macOS** (Apple Silicon) | [`springcli-1.0.0.pkg`](https://github.com/Amithkrishna29z/springcli/releases/download/v1.0.0/springcli-1.0.0.pkg) | Double-click and follow the installer |
+| **Linux** (Debian/Ubuntu) | [`springcli_1.0.0_amd64.deb`](https://github.com/Amithkrishna29z/springcli/releases/download/v1.0.0/springcli_1.0.0_amd64.deb) | `sudo apt install ./springcli_1.0.0_amd64.deb` |
+
+Verify it works:
+
+```bash
+springcli version
+springcli new my-app
+```
+
+> Prefer to build from source, or need a different package format? See
+> [Build](#build) and [One-click installers](#one-click-installers-bundled-runtime--on-path-no-java-required).
+
+---
+
 ## Features
 
 - 🧙 **Interactive wizard** (`springcli new`) — guided prompts with sensible defaults.
