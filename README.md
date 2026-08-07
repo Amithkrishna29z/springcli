@@ -1,5 +1,7 @@
 # springcli
 
+[![CI](https://github.com/Amithkrishna29z/springcli/actions/workflows/ci.yml/badge.svg)](https://github.com/Amithkrishna29z/springcli/actions/workflows/ci.yml)
+
 A cross-platform command-line tool that scaffolds **Spring Boot** projects by consuming the
 official [Spring Initializr API](https://start.spring.io) — instead of hand-rolling templates. It
 fetches live metadata (Boot versions, Java versions, dependencies, …), lets you pick options through
