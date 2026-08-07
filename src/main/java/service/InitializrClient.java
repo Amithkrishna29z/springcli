@@ -47,6 +47,23 @@ public class InitializrClient {
         return response.body();
     }
 
+    /**
+     * Fetches a reference {@code pom.xml} for the given request. Used to resolve the exact Maven
+     * coordinates (groupId/artifactId/scope) of dependencies, which the client metadata omits.
+     */
+    public String fetchPom(ProjectRequest request) {
+        HttpRequest httpRequest = HttpRequest.newBuilder()
+                .uri(URI.create(baseUrl + "/pom.xml?" + toQuery(request)))
+                .header("User-Agent", USER_AGENT)
+                .timeout(REQUEST_TIMEOUT)
+                .GET()
+                .build();
+
+        HttpResponse<String> response = send(httpRequest, HttpResponse.BodyHandlers.ofString());
+        ensureSuccess(response.statusCode(), "fetch pom.xml");
+        return response.body();
+    }
+
     public byte[] downloadStarter(ProjectRequest request) {
         HttpRequest httpRequest = HttpRequest.newBuilder()
                 .uri(URI.create(baseUrl + "/starter.zip?" + toQuery(request)))

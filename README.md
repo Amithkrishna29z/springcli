@@ -51,6 +51,8 @@ override with `--deps` in non-interactive mode.
 - 🔎 **Live metadata** from `start.spring.io/metadata/client`, **cached on disk** (24h) so
   `search`/`list`/`new` are instant and keep working offline.
 - 🔍 **Dependency search & listing** (`search`, `list`).
+- ➕ **Add dependencies to an existing project** (`add`) — injects the correct Maven coordinates into
+  your `pom.xml`, no hand-editing or trips back to start.spring.io.
 - 📦 Downloads and extracts `starter.zip`, then deletes the archive.
 - 🩺 **Environment doctor** (`doctor`) — checks Java / Maven / Git.
 - 💾 **Saved defaults** (`config`) — persist your group id, Java version, dependencies, etc.
@@ -183,6 +185,26 @@ springcli new my-app --yes \
 | `--open` | Open the project in VS Code if `code` is on the PATH. |
 | `--build` | Run `mvnw clean install` (or `gradlew build`) afterwards. |
 
+### Add dependencies to an existing project
+
+Already have a Spring Boot project and now need another starter? Run `add` from the project
+directory. It validates the ids, resolves their exact Maven coordinates from Initializr, and injects
+the new `<dependency>` nodes into your `pom.xml` (skipping any already present, and preserving the
+file's formatting).
+
+```bash
+cd my-existing-app
+springcli add actuator redis          # add by id (space or comma separated)
+springcli add postgresql --dry-run    # preview the <dependency> block, don't write
+springcli add web -f path/to/pom.xml  # target a specific pom
+```
+
+Notes:
+- **Maven only** for now — in a Gradle project `add` reports that and does nothing.
+- Only the standard generated layout (a single project-level `<dependencies>` block) is edited; if a
+  `<dependencyManagement>` section is detected it refuses to guess rather than risk corrupting the file.
+- Requires an internet connection (to resolve coordinates from Initializr).
+
 ### Search dependencies
 
 ```bash
@@ -301,9 +323,10 @@ independently unit-testable (HTTP is mocked in tests).
 
 ```
 cli/         Main (entry point + banner + global error handling), ServiceFactory (composition root)
-commands/    NewCommand, SearchCommand, ListCommand, VersionCommand, DoctorCommand  (Picocli)
+commands/    NewCommand, AddCommand, SearchCommand, ListCommand, VersionCommand, DoctorCommand  (Picocli)
 service/     InitializrClient (HTTP), MetadataService (parse/cache/search/validate),
-             ProjectGenerator (download→extract→cleanup), ZipExtractor (safe unzip)
+             ProjectGenerator (download→extract→cleanup), ZipExtractor (safe unzip),
+             PomEditor (read deps via DOM, inject via text splice)
 prompts/     InteractiveWizard (guided prompts, dependency search & multi-select)
 model/       Metadata (Initializr client metadata), ProjectRequest (immutable, builder)
 util/        Ansi (colour output), FileUtils

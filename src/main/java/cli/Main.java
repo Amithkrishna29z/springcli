@@ -1,5 +1,6 @@
 package cli;
 
+import commands.AddCommand;
 import commands.CompletionCommand;
 import commands.ConfigCommand;
 import commands.DoctorCommand;
@@ -33,6 +34,7 @@ import picocli.CommandLine.Option;
         },
         subcommands = {
                 NewCommand.class,
+                AddCommand.class,
                 SearchCommand.class,
                 ListCommand.class,
                 ConfigCommand.class,

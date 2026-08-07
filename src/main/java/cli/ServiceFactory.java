@@ -35,6 +35,10 @@ public class ServiceFactory {
         return metadataService;
     }
 
+    public InitializrClient initializrClient() {
+        return initializrClient;
+    }
+
     public ProjectGenerator projectGenerator() {
         return projectGenerator;
     }
