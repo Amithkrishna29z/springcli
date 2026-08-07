@@ -1,6 +1,7 @@
 package commands;
 
 import cli.ServiceFactory;
+import config.Defaults;
 import exception.SpringCliException;
 import model.ProjectRequest;
 import prompts.InteractiveWizard;
@@ -61,7 +62,9 @@ public class NewCommand implements Callable<Integer> {
     @Option(names = "--java-version", description = "Java version (defaults to Initializr default).")
     private String javaVersion;
 
-    @Option(names = "--deps", split = ",", description = "Comma-separated dependency ids, e.g. web,data-jpa.")
+    @Option(names = "--deps", split = ",",
+            description = "Comma-separated dependency ids, e.g. web,data-jpa. "
+                    + "If omitted, a sensible default set is used (web, data-jpa, devtools, validation, lombok).")
     private List<String> dependencies = List.of();
 
     @Option(names = "--force", description = "Overwrite a non-empty destination directory.")
@@ -123,9 +126,11 @@ public class NewCommand implements Callable<Integer> {
         String boot = bootVersion != null ? bootVersion : metadataService.getMetadata().bootVersion().defaultValue();
         String java = javaVersion != null ? javaVersion : metadataService.getMetadata().javaVersion().defaultValue();
 
+        List<String> deps = resolveDependencies(dependencies);
+
         metadataService.validateBootVersion(boot);
         metadataService.validateJavaVersion(java);
-        for (String dep : dependencies) {
+        for (String dep : deps) {
             metadataService.validateDependency(dep);
         }
 
@@ -140,8 +145,19 @@ public class NewCommand implements Callable<Integer> {
                 .packaging(packaging)
                 .bootVersion(boot)
                 .javaVersion(java)
-                .dependencies(dependencies)
+                .dependencies(deps)
                 .build();
+    }
+
+    /**
+     * Resolves the effective dependency list: the user's explicit {@code --deps} when provided,
+     * otherwise the {@link Defaults#DEPENDENCIES default set}. Package-visible for testing.
+     *
+     * @param provided the ids passed via {@code --deps} (possibly empty)
+     * @return the ids to generate with
+     */
+    static List<String> resolveDependencies(List<String> provided) {
+        return (provided == null || provided.isEmpty()) ? Defaults.DEPENDENCIES : provided;
     }
 
     /** Optional post-generation conveniences (git / VS Code / build). Failures are warnings only. */

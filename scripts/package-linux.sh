@@ -12,11 +12,11 @@
 # (Verify after install with: dpkg -L springcli | grep /usr/bin)
 #
 # Usage:  ./scripts/package-linux.sh [deb|rpm]     (default: deb)
-# Output: dist/springcli_<version>_amd64.deb  (or the .rpm equivalent)
+# Output: dist/springcli-amd64.deb  (or dist/springcli.x86_64.rpm)
 
 set -euo pipefail
 
-VERSION="1.0.0"
+VERSION="1.1.0"
 TYPE="${1:-deb}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
@@ -42,4 +42,18 @@ jpackage \
   --linux-shortcut \
   --dest "$OUT"
 
-echo "==> Done. Package written to $OUT/"
+# jpackage names the file springcli_<version>_<arch>.<type>; rename to a stable, version-less name
+# so GitHub 'latest/download' links never need updating. The package's internal version (used for
+# in-place upgrade detection by apt/dpkg) is unaffected.
+built="$(ls -t "$OUT"/springcli_*."$TYPE" 2>/dev/null | head -1 || true)"
+if [ -n "$built" ]; then
+  if [ "$TYPE" = "rpm" ]; then
+    mv -f "$built" "$OUT/springcli.x86_64.rpm"
+    echo "==> Done. Package written to $OUT/springcli.x86_64.rpm"
+  else
+    mv -f "$built" "$OUT/springcli-amd64.deb"
+    echo "==> Done. Package written to $OUT/springcli-amd64.deb"
+  fi
+else
+  echo "==> Done. Package written to $OUT/ (unexpected filename; check contents)"
+fi

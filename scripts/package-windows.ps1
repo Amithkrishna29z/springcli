@@ -9,11 +9,11 @@
 #   - Inno Setup 6 (ISCC.exe on PATH)  https://jrsoftware.org/isdl.php
 #
 # Usage:  powershell -ExecutionPolicy Bypass -File scripts\package-windows.ps1
-# Output: dist\springcli-1.0.0-setup.exe
+# Output: dist\springcli-setup.exe
 
 $ErrorActionPreference = "Stop"
 
-$Version = "1.0.0"
+$Version = "1.1.0"
 $Root = Split-Path -Parent $PSScriptRoot
 Set-Location $Root
 
@@ -50,4 +50,4 @@ if (-not $Iscc) {
 & $Iscc.Source "scripts\windows\springcli.iss"
 if ($LASTEXITCODE -ne 0) { throw "Inno Setup compilation failed." }
 
-Write-Host "==> Done. Installer written to $Out\springcli-$Version-setup.exe" -ForegroundColor Green
+Write-Host "==> Done. Installer written to $Out\springcli-setup.exe" -ForegroundColor Green

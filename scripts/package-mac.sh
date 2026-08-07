@@ -11,11 +11,11 @@
 #   - macOS (pkgbuild is built in; no Xcode required)
 #
 # Usage:  ./scripts/package-mac.sh
-# Output: dist/springcli-1.0.0.pkg
+# Output: dist/springcli.pkg
 
 set -euo pipefail
 
-VERSION="1.0.0"
+VERSION="1.1.0"
 IDENTIFIER="dev.springcli"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
@@ -48,6 +48,8 @@ cp -R "$APPIMAGE/springcli.app" "$PKGROOT/Applications/"
 # The postinstall script must be executable for pkgbuild to run it.
 chmod +x scripts/mac/pkg-scripts/postinstall
 
+# A stable, version-less filename keeps GitHub 'latest/download' links working across releases;
+# the package's internal --version still drives in-place upgrade detection.
 echo "==> Building installer package (.pkg) with PATH symlink..."
 pkgbuild \
   --root "$PKGROOT" \
@@ -55,6 +57,6 @@ pkgbuild \
   --version "$VERSION" \
   --scripts scripts/mac/pkg-scripts \
   --install-location / \
-  "$OUT/springcli-$VERSION.pkg"
+  "$OUT/springcli.pkg"
 
-echo "==> Done. Installer written to $OUT/springcli-$VERSION.pkg"
+echo "==> Done. Installer written to $OUT/springcli.pkg"

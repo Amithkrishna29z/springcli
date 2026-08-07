@@ -11,18 +11,23 @@
 ; Build with: ISCC.exe scripts\windows\springcli.iss   (see package-windows.ps1)
 
 #define AppName "springcli"
-#define AppVersion "1.0.0"
+#define AppVersion "1.1.0"
 #define AppExe "springcli.exe"
 
 [Setup]
+; A fixed AppId means re-running a newer installer UPGRADES the existing install in place
+; (same directory, files replaced) instead of creating a duplicate. Never change this GUID.
+AppId={{8F2A5C41-3B6D-4E9A-9C1F-2A7B6E5D4C3B}
 AppName={#AppName}
 AppVersion={#AppVersion}
+VersionInfoVersion={#AppVersion}
 AppPublisher=springcli
 DefaultDirName={autopf}\{#AppName}
 DisableProgramGroupPage=yes
 UninstallDisplayIcon={app}\{#AppExe}
 OutputDir=..\..\dist
-OutputBaseFilename=springcli-{#AppVersion}-setup
+; Stable, version-less filename so GitHub 'latest/download' links never need updating.
+OutputBaseFilename=springcli-setup
 Compression=lzma2
 SolidCompression=yes
 ArchitecturesInstallIn64BitMode=x64compatible

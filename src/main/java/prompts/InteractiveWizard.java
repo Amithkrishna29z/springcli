@@ -1,5 +1,6 @@
 package prompts;
 
+import config.Defaults;
 import model.Metadata;
 import model.ProjectRequest;
 import service.MetadataService;
@@ -156,8 +157,20 @@ public class InteractiveWizard {
      */
     private List<String> selectDependencies() {
         out.println("\n" + Ansi.bold("Dependencies"));
-        out.println("Type a search term to find dependencies, select by number, then press Enter on an empty line to finish.");
+        out.println("Type a search term to find dependencies, select a number to toggle it on/off, "
+                + "then press Enter on an empty line to finish.");
+
+        // Pre-select the default set (only ids that actually exist in the current metadata).
         Set<String> selected = new LinkedHashSet<>();
+        for (String id : Defaults.DEPENDENCIES) {
+            metadataService.findDependency(id).ifPresent(d -> selected.add(d.id()));
+        }
+        if (!selected.isEmpty()) {
+            String names = selected.stream()
+                    .map(id -> metadataService.findDependency(id).map(Metadata.Dependency::name).orElse(id))
+                    .collect(java.util.stream.Collectors.joining(", "));
+            out.println(Ansi.green("Pre-selected defaults: ") + names);
+        }
 
         while (true) {
             out.print(Ansi.cyan("\nSearch dependency") + " (empty to finish): ");
@@ -182,7 +195,7 @@ public class InteractiveWizard {
             if (results.size() > limit) {
                 out.println("  ... " + (results.size() - limit) + " more. Refine your search to narrow results.");
             }
-            out.print(Ansi.cyan("Add which numbers?") + " (comma-separated, empty to skip): ");
+            out.print(Ansi.cyan("Toggle which numbers?") + " (comma-separated, empty to skip): ");
             out.flush();
             String picks = readLine();
             if (picks == null || picks.isBlank()) {
@@ -193,8 +206,12 @@ public class InteractiveWizard {
                     int idx = Integer.parseInt(token.trim());
                     if (idx >= 1 && idx <= limit) {
                         Metadata.Dependency d = results.get(idx - 1);
-                        selected.add(d.id());
-                        Ansi.success("Added " + d.name());
+                        if (selected.remove(d.id())) {
+                            Ansi.warn("Removed " + d.name());
+                        } else {
+                            selected.add(d.id());
+                            Ansi.success("Added " + d.name());
+                        }
                     }
                 } catch (NumberFormatException ignored) {
                     // skip invalid token
