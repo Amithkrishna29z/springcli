@@ -57,12 +57,28 @@ public class UpdateCommand implements Callable<Integer> {
         System.out.println("Release notes: " + updateService.releaseUrl());
         System.out.println("Installer:     " + updateService.downloadUrl(asset));
 
-        if (download) {
+        if (download || confirmInstall()) {
             return downloadAndOpen(updateService.downloadUrl(asset), asset);
         }
         System.out.println("\nRun " + Ansi.cyan("springcli update --download")
                 + " to download and launch the installer.");
         return 0;
+    }
+
+    /** Prompts to install now when running interactively; returns false for non-TTY sessions. */
+    private boolean confirmInstall() {
+        if (System.console() == null) {
+            return false;
+        }
+        System.out.print("\nDownload and install now? [y/N]: ");
+        System.out.flush();
+        try {
+            String line = new java.io.BufferedReader(
+                    new java.io.InputStreamReader(System.in, java.nio.charset.StandardCharsets.UTF_8)).readLine();
+            return line != null && line.trim().toLowerCase(Locale.ROOT).startsWith("y");
+        } catch (java.io.IOException e) {
+            return false;
+        }
     }
 
     /** Picks the stable installer asset name for the current platform. */

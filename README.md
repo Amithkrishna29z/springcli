@@ -226,12 +226,17 @@ springcli doctor
 Check whether a newer release is available, and optionally download the installer for your OS:
 
 ```bash
-springcli update              # report current vs latest
+springcli update              # report current vs latest; offers to install if newer
 springcli update --download   # download the installer for your OS and open it
 ```
 
-Because a running executable can't reliably overwrite itself, `--download` hands off to the native
-installer (which upgrades your existing install in place). Requires an internet connection.
+When a newer version exists, `springcli update` prompts to download and install it right there in the
+terminal. springcli also shows a small **"update available" notice at startup** — a throttled,
+best-effort check (at most once/day, cached, never blocking) that you can turn off with
+`SPRINGCLI_NO_UPDATE_CHECK=1`.
+
+Because a running executable can't reliably overwrite itself, the installer hands off to the native
+package (which upgrades your existing install in place). Requires an internet connection.
 
 ### Getting-started guide
 
@@ -275,6 +280,7 @@ springcli version
 |----------------------|--------|
 | `SPRINGCLI_BASE_URL` | Override the Initializr base URL (e.g. a self-hosted instance). |
 | `SPRINGCLI_DEBUG` | Print full stack traces on unexpected errors. |
+| `SPRINGCLI_NO_UPDATE_CHECK` | Disable the startup "update available" notice. |
 | `NO_COLOR` | Disable coloured output. |
 
 ---

@@ -10,6 +10,8 @@ import commands.SearchCommand;
 import commands.UpdateCommand;
 import commands.VersionCommand;
 import exception.SpringCliException;
+import service.UpdateNotifier;
+import service.UpdateService;
 import util.Ansi;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
@@ -72,7 +74,41 @@ public class Main implements Runnable {
         }
 
         int exitCode = cmd.execute(args);
+        maybeNotifyUpdate(args);
         System.exit(exitCode);
+    }
+
+    /**
+     * Best-effort startup update notice. Skipped for non-interactive output (pipes/scripts), for the
+     * update/completion/version commands themselves, and when SPRINGCLI_NO_UPDATE_CHECK is set. The
+     * underlying check is throttled and time-bounded, so this never meaningfully delays a command.
+     */
+    private static void maybeNotifyUpdate(String[] args) {
+        if (System.getenv("SPRINGCLI_NO_UPDATE_CHECK") != null || System.console() == null) {
+            return;
+        }
+        String command = firstNonOption(args);
+        if (command == null
+                || command.equals("update") || command.equals("completion") || command.equals("version")) {
+            return;
+        }
+        try {
+            UpdateService service = new UpdateService(VersionCommand.VERSION);
+            java.nio.file.Path cache = java.nio.file.Path.of(
+                    System.getProperty("user.home"), ".springcli", "update-check.json");
+            new UpdateNotifier(service, cache, java.time.Duration.ofHours(24)).maybeNotify(System.err);
+        } catch (Exception ignored) {
+            // never fail a command over an update notice
+        }
+    }
+
+    private static String firstNonOption(String[] args) {
+        for (String a : args) {
+            if (!a.startsWith("-")) {
+                return a;
+            }
+        }
+        return null;
     }
 
     private static void forceUtf8Console() {
