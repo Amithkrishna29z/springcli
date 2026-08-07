@@ -11,21 +11,8 @@ import java.nio.file.Path;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
-/**
- * Extracts a Spring Initializr starter archive into a target directory.
- *
- * <p>Guards against the "zip slip" path-traversal vulnerability by verifying that every resolved
- * entry stays within the destination directory before writing it.</p>
- */
 public class ZipExtractor {
 
-    /**
-     * Extracts a ZIP file from disk into {@code targetDir}.
-     *
-     * @param zipFile   the archive on disk
-     * @param targetDir the destination directory (created if absent)
-     * @throws ExtractionException if the archive is malformed or cannot be written
-     */
     public void extract(Path zipFile, Path targetDir) {
         try (InputStream in = Files.newInputStream(zipFile)) {
             extract(in, targetDir);
@@ -34,18 +21,10 @@ public class ZipExtractor {
         }
     }
 
-    /**
-     * Extracts ZIP bytes held in memory into {@code targetDir}. Convenient for tests.
-     *
-     * @param zipBytes  the raw archive content
-     * @param targetDir the destination directory (created if absent)
-     * @throws ExtractionException if the archive is malformed or cannot be written
-     */
     public void extract(byte[] zipBytes, Path targetDir) {
         extract(new ByteArrayInputStream(zipBytes), targetDir);
     }
 
-    /** Core extraction routine operating on any input stream. */
     public void extract(InputStream zipStream, Path targetDir) {
         Path destination = targetDir.toAbsolutePath().normalize();
         try {

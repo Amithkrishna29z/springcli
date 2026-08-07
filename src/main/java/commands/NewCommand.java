@@ -18,13 +18,6 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.Callable;
 
-/**
- * {@code springcli new [name]} — creates a new Spring Boot project.
- *
- * <p>By default it launches the interactive wizard (pre-filled with {@code name} if supplied). When
- * {@code --yes} is passed it runs non-interactively, resolving every option from command-line flags
- * and metadata defaults, which is convenient for scripting.</p>
- */
 @Command(name = "new", description = "Create a new Spring Boot project (interactive by default).")
 public class NewCommand implements Callable<Integer> {
 
@@ -96,12 +89,12 @@ public class NewCommand implements Callable<Integer> {
     @Override
     public Integer call() {
         Ansi.info("Fetching Spring metadata...");
-        // Trigger and validate metadata up front so failures surface before any prompting.
+
         metadataService.getMetadata();
 
         ProjectRequest request = nonInteractive ? buildFromFlags() : runWizard();
         if (request == null) {
-            return 0; // user cancelled
+            return 0;
         }
 
         Path targetDir = Path.of(request.artifactId());
@@ -114,12 +107,10 @@ public class NewCommand implements Callable<Integer> {
         return 0;
     }
 
-    /** Runs the interactive wizard, using the positional name as the default. */
     private ProjectRequest runWizard() {
         return new InteractiveWizard(metadataService).run(name);
     }
 
-    /** Builds a request purely from flags + metadata defaults, validating version choices. */
     private ProjectRequest buildFromFlags() {
         String resolvedName = name != null ? name : "demo";
         String resolvedArtifact = artifactId != null ? artifactId : resolvedName;
@@ -149,18 +140,10 @@ public class NewCommand implements Callable<Integer> {
                 .build();
     }
 
-    /**
-     * Resolves the effective dependency list: the user's explicit {@code --deps} when provided,
-     * otherwise the {@link Defaults#DEPENDENCIES default set}. Package-visible for testing.
-     *
-     * @param provided the ids passed via {@code --deps} (possibly empty)
-     * @return the ids to generate with
-     */
     static List<String> resolveDependencies(List<String> provided) {
         return (provided == null || provided.isEmpty()) ? Defaults.DEPENDENCIES : provided;
     }
 
-    /** Optional post-generation conveniences (git / VS Code / build). Failures are warnings only. */
     private void runPostActions(Path targetDir, ProjectRequest request) {
         if (initGit) {
             runProcess(targetDir, "Initializing git repository...", "git", "init", "-q");

@@ -17,7 +17,6 @@ import static org.mockito.Mockito.when;
 
 class MetadataServiceTest {
 
-    /** Minimal but structurally faithful metadata document. */
     private static final String SAMPLE_JSON = """
         {
           "bootVersion": { "default": "3.3.2", "values": [ {"id":"3.3.2","name":"3.3.2"}, {"id":"3.2.8","name":"3.2.8"} ] },
@@ -76,7 +75,7 @@ class MetadataServiceTest {
     void searchMatchesNameIdAndDescription() {
         MetadataService service = serviceReturning(SAMPLE_JSON);
         List<Metadata.Dependency> byName = service.searchDependencies("web");
-        assertEquals(2, byName.size()); // Spring Web + WebSocket
+        assertEquals(2, byName.size());
         List<Metadata.Dependency> byDescription = service.searchDependencies("persist");
         assertEquals(1, byDescription.size());
         assertEquals("data-jpa", byDescription.get(0).id());

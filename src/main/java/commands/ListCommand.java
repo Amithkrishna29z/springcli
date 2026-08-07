@@ -8,9 +8,6 @@ import picocli.CommandLine.Command;
 
 import java.util.concurrent.Callable;
 
-/**
- * {@code springcli list} — lists all available dependencies grouped by their Initializr category.
- */
 @Command(name = "list", description = "List all available dependencies grouped by category.")
 public class ListCommand implements Callable<Integer> {
 

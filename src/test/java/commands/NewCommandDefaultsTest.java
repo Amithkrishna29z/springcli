@@ -7,7 +7,6 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-/** Verifies the default-dependency policy applied to every new project. */
 class NewCommandDefaultsTest {
 
     @Test

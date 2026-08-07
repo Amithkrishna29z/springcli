@@ -17,14 +17,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-/**
- * Drives the interactive project-creation wizard: it prompts the user for each project attribute,
- * offering metadata-derived defaults, and lets them search and multi-select dependencies.
- *
- * <p>Input/output streams are injected so the wizard can be exercised in tests with scripted input.
- * Reading uses a simple line-based {@link BufferedReader}, which keeps the class dependency-free and
- * portable across terminals; JLine is used elsewhere for richer editing where available.</p>
- */
 public class InteractiveWizard {
 
     private final MetadataService metadataService;
@@ -43,12 +35,6 @@ public class InteractiveWizard {
         this.out = out;
     }
 
-    /**
-     * Runs the wizard end to end.
-     *
-     * @param defaultName pre-filled project name (e.g. from {@code springcli new my-app}); may be null
-     * @return a fully-populated, validated {@link ProjectRequest}
-     */
     public ProjectRequest run(String defaultName) {
         Metadata md = metadataService.getMetadata();
 
@@ -91,7 +77,6 @@ public class InteractiveWizard {
         return request;
     }
 
-    /** Prompts for a free-text value, returning {@code def} when the user just presses Enter. */
     private String ask(String label, String def) {
         out.print(Ansi.cyan(label) + (def != null ? " (" + def + ")" : "") + ": ");
         out.flush();
@@ -99,7 +84,6 @@ public class InteractiveWizard {
         return (line == null || line.isBlank()) ? def : line.trim();
     }
 
-    /** Prompts a yes/no question with a default. */
     private boolean confirm(String label, boolean def) {
         String hint = def ? "[Y/n]" : "[y/N]";
         out.print(Ansi.cyan(label) + " " + hint + ": ");
@@ -111,15 +95,10 @@ public class InteractiveWizard {
         return line.trim().toLowerCase().startsWith("y");
     }
 
-    /** The build tool/type choice is derived from the {@code type} single-select in metadata. */
     private String chooseType(Metadata md) {
         return choose("Build tool", md.type(), md.type().defaultValue());
     }
 
-    /**
-     * Renders a numbered list of options and reads a selection, defaulting to {@code defaultId} on
-     * empty input. Re-prompts on invalid input.
-     */
     private String choose(String label, Metadata.SingleSelect field, String defaultId) {
         List<Metadata.Option> options = field.values();
         out.println("\n" + Ansi.bold(label) + ":");
@@ -145,22 +124,17 @@ public class InteractiveWizard {
                     return options.get(idx - 1).id();
                 }
             } catch (NumberFormatException ignored) {
-                // fall through to warning
+
             }
             Ansi.warn("Please enter a number between 1 and " + options.size() + ".");
         }
     }
 
-    /**
-     * Interactive dependency selection loop: the user types search terms, picks results by number,
-     * and finishes with an empty line. Selected ids are de-duplicated.
-     */
     private List<String> selectDependencies() {
         out.println("\n" + Ansi.bold("Dependencies"));
         out.println("Type a search term to find dependencies, select a number to toggle it on/off, "
                 + "then press Enter on an empty line to finish.");
 
-        // Pre-select the default set (only ids that actually exist in the current metadata).
         Set<String> selected = new LinkedHashSet<>();
         for (String id : Defaults.DEPENDENCIES) {
             metadataService.findDependency(id).ifPresent(d -> selected.add(d.id()));
@@ -214,14 +188,13 @@ public class InteractiveWizard {
                         }
                     }
                 } catch (NumberFormatException ignored) {
-                    // skip invalid token
+
                 }
             }
         }
         return new ArrayList<>(selected);
     }
 
-    /** Prints a review of the chosen options before generation. */
     private void printSummary(ProjectRequest r) {
         out.println("\n" + Ansi.bold("Project summary"));
         out.println("  Name:        " + r.name());

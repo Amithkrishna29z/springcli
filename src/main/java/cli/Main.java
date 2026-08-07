@@ -11,11 +11,6 @@ import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
-/**
- * Application entry point and root command. Wires the subcommands, prints the banner, and installs a
- * global exception handler that renders {@link SpringCliException}s as clean, coloured messages
- * (reserving stack traces for genuinely unexpected failures).
- */
 @Command(
         name = "springcli",
         mixinStandardHelpOptions = true,
@@ -42,9 +37,6 @@ public class Main implements Runnable {
     @Option(names = "--no-banner", description = "Suppress the ASCII banner.")
     private boolean noBanner;
 
-    /**
-     * When invoked with no subcommand, show the banner and usage help.
-     */
     @Override
     public void run() {
         printBanner();
@@ -59,7 +51,6 @@ public class Main implements Runnable {
                 .setExecutionExceptionHandler(new FriendlyExceptionHandler())
                 .setCaseInsensitiveEnumValuesAllowed(true);
 
-        // Show the banner for real work (not for help/version, which picocli handles directly).
         if (args.length > 0 && !isHelpOrVersion(args[0]) && !contains(args, "--no-banner")) {
             root.printBanner();
         }
@@ -68,10 +59,6 @@ public class Main implements Runnable {
         System.exit(exitCode);
     }
 
-    /**
-     * Ensures console output uses UTF-8 so box-drawing and check-mark glyphs render correctly on
-     * Windows terminals that still default to a legacy code page.
-     */
     private static void forceUtf8Console() {
         System.setOut(new java.io.PrintStream(System.out, true, java.nio.charset.StandardCharsets.UTF_8));
         System.setErr(new java.io.PrintStream(System.err, true, java.nio.charset.StandardCharsets.UTF_8));
@@ -97,7 +84,6 @@ public class Main implements Runnable {
         return false;
     }
 
-    /** Renders application errors cleanly; falls back to a stack trace for unexpected ones. */
     static class FriendlyExceptionHandler implements CommandLine.IExecutionExceptionHandler {
         @Override
         public int handleExecutionException(Exception ex, CommandLine cmd, CommandLine.ParseResult parseResult) {
@@ -115,7 +101,6 @@ public class Main implements Runnable {
         }
     }
 
-    /** Supplies {@code --version} output from the single source of truth. */
     static class VersionProvider implements CommandLine.IVersionProvider {
         @Override
         public String[] getVersion() {

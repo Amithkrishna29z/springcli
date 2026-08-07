@@ -11,10 +11,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * Verifies picocli wiring and option parsing without touching the network. We inspect the parse
- * result rather than executing commands, so no metadata is fetched.
- */
 class CommandParsingTest {
 
     private CommandLine root() {
@@ -38,7 +34,7 @@ class CommandParsingTest {
         assertEquals("new", sub.commandSpec().name());
         NewCommand cmd = (NewCommand) sub.commandSpec().userObject();
         assertNotNull(cmd);
-        // Flag presence is validated via the parse result to avoid relying on private fields.
+
         assertTrue(sub.hasMatchedOption("--yes"));
         assertTrue(sub.hasMatchedOption("--force"));
         assertEquals("com.acme", sub.matchedOptionValue("--group", null));
@@ -47,9 +43,9 @@ class CommandParsingTest {
 
     @Test
     void searchRequiresATerm() {
-        // Missing required positional should raise a parameter exception.
+
         CommandLine cli = root();
-        assertEquals(2, cli.execute("search")); // picocli returns usage error code 2
+        assertEquals(2, cli.execute("search"));
     }
 
     @Test

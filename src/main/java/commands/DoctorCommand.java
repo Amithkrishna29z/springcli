@@ -7,10 +7,6 @@ import picocli.CommandLine.Command;
 import java.io.IOException;
 import java.util.concurrent.Callable;
 
-/**
- * {@code springcli doctor} — checks that common tooling (Java, Maven, Git) is installed and prints a
- * short diagnostic report. Useful for troubleshooting environment issues before generating a project.
- */
 @Command(name = "doctor", description = "Check your environment (Java, Maven, Git).")
 public class DoctorCommand implements Callable<Integer> {
 
@@ -20,7 +16,7 @@ public class DoctorCommand implements Callable<Integer> {
         boolean ok = true;
         ok &= check("Java", "java", "-version");
         ok &= check("Maven", "mvn", "-v");
-        // Git is optional; report but don't fail the overall check on its absence.
+
         check("Git", "git", "--version");
 
         System.out.println();
@@ -32,7 +28,6 @@ public class DoctorCommand implements Callable<Integer> {
         return 1;
     }
 
-    /** Runs {@code command} and reports whether it is available. Returns true if found. */
     private boolean check(String label, String... command) {
         try {
             Process p = new ProcessBuilder(ProcessUtils.platformCommand(command))

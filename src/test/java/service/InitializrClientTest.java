@@ -27,7 +27,7 @@ class InitializrClientTest {
                 .language("java")
                 .bootVersion("3.3.2")
                 .groupId("com.acme")
-                .artifactId("my app")   // space forces URL-encoding
+                .artifactId("my app")
                 .name("my app")
                 .packageName("com.acme.myapp")
                 .packaging("jar")
@@ -51,7 +51,7 @@ class InitializrClientTest {
     @Test
     void trimsTrailingSlashFromBaseUrl() {
         InitializrClient client = new InitializrClient(mock(HttpClient.class), "https://start.spring.io/");
-        // No exception and query still builds — indirectly confirms construction succeeded.
+
         assertTrue(client.toQuery(sampleRequest()).contains("type=maven-project"));
     }
 

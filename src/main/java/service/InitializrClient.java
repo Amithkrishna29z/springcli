@@ -13,18 +13,8 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.StringJoiner;
 
-/**
- * Thin HTTP boundary around the Spring Initializr REST endpoints. It knows how to (a) fetch the
- * client metadata document and (b) build and execute the {@code /starter.zip} request. It performs
- * no JSON parsing or file I/O — those responsibilities live in {@link MetadataService} and
- * {@link ZipExtractor} respectively — keeping this class trivially mockable.
- *
- * <p>The {@link HttpClient} and base URL are injected so tests can supply a mock client or point at
- * a local stub server.</p>
- */
 public class InitializrClient {
 
-    /** Default Spring Initializr service. */
     public static final String DEFAULT_BASE_URL = "https://start.spring.io";
 
     private static final String USER_AGENT = "springcli/1.0.0";
@@ -33,31 +23,20 @@ public class InitializrClient {
     private final HttpClient httpClient;
     private final String baseUrl;
 
-    /** Creates a client with sensible defaults (system HttpClient, public Initializr). */
     public InitializrClient() {
         this(HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(15)).build(), DEFAULT_BASE_URL);
     }
 
-    /**
-     * @param httpClient the HTTP client to use (injected for testability)
-     * @param baseUrl    the Initializr base URL, without trailing slash
-     */
     public InitializrClient(HttpClient httpClient, String baseUrl) {
         this.httpClient = httpClient;
         this.baseUrl = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
     }
 
-    /**
-     * Fetches the raw client metadata JSON document.
-     *
-     * @return the response body as a JSON string
-     * @throws NetworkException if the request fails or returns a non-2xx status
-     */
     public String fetchMetadata() {
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(baseUrl + "/metadata/client"))
                 .header("User-Agent", USER_AGENT)
-                // Ask for the HAL client media type so we get the stable metadata contract.
+
                 .header("Accept", "application/vnd.initializr.v2.2+json")
                 .timeout(REQUEST_TIMEOUT)
                 .GET()
@@ -68,13 +47,6 @@ public class InitializrClient {
         return response.body();
     }
 
-    /**
-     * Downloads the generated starter archive for the given request.
-     *
-     * @param request the resolved project options
-     * @return the raw bytes of the ZIP archive
-     * @throws NetworkException if the request fails or returns a non-2xx status
-     */
     public byte[] downloadStarter(ProjectRequest request) {
         HttpRequest httpRequest = HttpRequest.newBuilder()
                 .uri(URI.create(baseUrl + "/starter.zip?" + toQuery(request)))
@@ -88,7 +60,6 @@ public class InitializrClient {
         return response.body();
     }
 
-    /** Builds the URL-encoded query string for {@code /starter.zip}. Package-visible for testing. */
     String toQuery(ProjectRequest r) {
         StringJoiner q = new StringJoiner("&");
         q.add(param("type", r.type()));

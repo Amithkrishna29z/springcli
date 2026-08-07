@@ -10,10 +10,6 @@ import picocli.CommandLine.Parameters;
 import java.util.List;
 import java.util.concurrent.Callable;
 
-/**
- * {@code springcli search <term>} — searches available Spring Initializr dependencies by id, name
- * or description and prints the matches.
- */
 @Command(name = "search", description = "Search available Spring Boot dependencies.")
 public class SearchCommand implements Callable<Integer> {
 
@@ -22,12 +18,10 @@ public class SearchCommand implements Callable<Integer> {
 
     private final MetadataService metadataService;
 
-    /** Default constructor used by picocli; wires services via the factory. */
     public SearchCommand() {
         this(new ServiceFactory().metadataService());
     }
 
-    /** Constructor for tests / explicit dependency injection. */
     public SearchCommand(MetadataService metadataService) {
         this.metadataService = metadataService;
     }

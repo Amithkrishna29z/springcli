@@ -61,7 +61,7 @@ class ZipExtractorTest {
 
     @Test
     void truncatedArchiveRaisesExtractionException(@TempDir Path target) throws IOException {
-        // A valid archive cut off mid-stream fails while reading entry data.
+
         byte[] full = zip("data.bin", "x".repeat(2000));
         byte[] truncated = java.util.Arrays.copyOf(full, 40);
         assertThrows(ExtractionException.class, () -> extractor.extract(truncated, target));

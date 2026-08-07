@@ -3,22 +3,17 @@ package model;
 import java.util.List;
 import java.util.Objects;
 
-/**
- * The fully-resolved set of options used to generate a project. Instances are immutable and built
- * via {@link Builder}; every field maps directly to a query parameter of the Initializr
- * {@code /starter.zip} endpoint.
- */
 public final class ProjectRequest {
 
-    private final String type;        // e.g. maven-project, gradle-project
-    private final String language;    // java, kotlin, groovy
+    private final String type;
+    private final String language;
     private final String bootVersion;
     private final String groupId;
     private final String artifactId;
     private final String name;
     private final String description;
     private final String packageName;
-    private final String packaging;   // jar, war
+    private final String packaging;
     private final String javaVersion;
     private final List<String> dependencies;
 
@@ -52,7 +47,6 @@ public final class ProjectRequest {
         return new Builder();
     }
 
-    /** Mutable builder for {@link ProjectRequest}. */
     public static final class Builder {
         private String type = "maven-project";
         private String language = "java";

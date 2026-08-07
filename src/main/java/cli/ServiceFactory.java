@@ -5,11 +5,6 @@ import service.MetadataService;
 import service.ProjectGenerator;
 import service.ZipExtractor;
 
-/**
- * Tiny composition root that constructs and wires the service graph. Centralising construction here
- * keeps commands decoupled from concrete wiring and makes it easy to swap the Initializr base URL
- * (e.g. via {@code SPRINGCLI_BASE_URL}) for testing against a stub.
- */
 public class ServiceFactory {
 
     private final InitializrClient initializrClient;
