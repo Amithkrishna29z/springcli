@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import exception.SpringCliException;
 import exception.ValidationException;
 import model.Metadata;
+import util.Ansi;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -13,18 +14,24 @@ import java.util.Optional;
 public class MetadataService {
 
     private final InitializrClient client;
+    private final MetadataCache cache;
     private final ObjectMapper objectMapper;
 
     private Metadata cached;
 
     public MetadataService(InitializrClient client) {
+        this(client, MetadataCache.disabled());
+    }
+
+    public MetadataService(InitializrClient client, MetadataCache cache) {
         this.client = client;
+        this.cache = cache;
         this.objectMapper = new ObjectMapper();
     }
 
     public Metadata getMetadata() {
         if (cached == null) {
-            String json = client.fetchMetadata();
+            String json = loadJson();
             try {
                 cached = objectMapper.readValue(json, Metadata.class);
             } catch (Exception e) {
@@ -36,6 +43,30 @@ public class MetadataService {
             }
         }
         return cached;
+    }
+
+    /**
+     * Resolves the metadata JSON: a fresh disk cache if available, otherwise a network fetch (which
+     * is written back to the cache). If the network is unreachable, falls back to a stale cache entry
+     * so the tool keeps working offline.
+     */
+    private String loadJson() {
+        Optional<String> fresh = cache.readFresh();
+        if (fresh.isPresent()) {
+            return fresh.get();
+        }
+        try {
+            String json = client.fetchMetadata();
+            cache.write(json);
+            return json;
+        } catch (SpringCliException networkError) {
+            Optional<String> stale = cache.readAny();
+            if (stale.isPresent()) {
+                Ansi.warn("Couldn't reach Spring Initializr; using cached metadata.");
+                return stale.get();
+            }
+            throw networkError;
+        }
     }
 
     public List<Metadata.Dependency> allDependencies() {

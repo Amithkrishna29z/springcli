@@ -1,9 +1,13 @@
 package cli;
 
 import service.InitializrClient;
+import service.MetadataCache;
 import service.MetadataService;
 import service.ProjectGenerator;
 import service.ZipExtractor;
+
+import java.nio.file.Path;
+import java.time.Duration;
 
 public class ServiceFactory {
 
@@ -18,7 +22,12 @@ public class ServiceFactory {
                         .connectTimeout(java.time.Duration.ofSeconds(15))
                         .build(),
                 baseUrl);
-        this.metadataService = new MetadataService(initializrClient);
+        MetadataCache cache = System.getenv("SPRINGCLI_NO_CACHE") != null
+                ? MetadataCache.disabled()
+                : MetadataCache.onDisk(
+                        Path.of(System.getProperty("user.home"), ".springcli", "metadata-cache.json"),
+                        Duration.ofHours(24));
+        this.metadataService = new MetadataService(initializrClient, cache);
         this.projectGenerator = new ProjectGenerator(initializrClient, new ZipExtractor());
     }
 

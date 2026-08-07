@@ -48,7 +48,8 @@ override with `--deps` in non-interactive mode.
 
 - 🧙 **Interactive wizard** (`springcli new`) — guided prompts with sensible defaults.
 - ⚡ **Non-interactive mode** (`springcli new my-app --yes ...`) — scriptable, CI-friendly.
-- 🔎 **Live metadata** fetched from `start.spring.io/metadata/client` (cached per run).
+- 🔎 **Live metadata** from `start.spring.io/metadata/client`, **cached on disk** (24h) so
+  `search`/`list`/`new` are instant and keep working offline.
 - 🔍 **Dependency search & listing** (`search`, `list`).
 - 📦 Downloads and extracts `starter.zip`, then deletes the archive.
 - 🩺 **Environment doctor** (`doctor`) — checks Java / Maven / Git.
@@ -288,6 +289,7 @@ springcli version
 | `SPRINGCLI_BASE_URL` | Override the Initializr base URL (e.g. a self-hosted instance). |
 | `SPRINGCLI_DEBUG` | Print full stack traces on unexpected errors. |
 | `SPRINGCLI_NO_UPDATE_CHECK` | Disable the startup "update available" notice. |
+| `SPRINGCLI_NO_CACHE` | Disable the on-disk metadata cache (always fetch fresh). |
 | `NO_COLOR` | Disable coloured output. |
 
 ---
