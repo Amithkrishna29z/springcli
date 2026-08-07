@@ -5,6 +5,7 @@ import commands.ConfigCommand;
 import commands.DoctorCommand;
 import commands.GuideCommand;
 import commands.ListCommand;
+import commands.ModifyCommand;
 import commands.NewCommand;
 import commands.SearchCommand;
 import commands.UpdateCommand;
@@ -38,6 +39,7 @@ import picocli.CommandLine.Option;
                 GuideCommand.class,
                 CompletionCommand.class,
                 UpdateCommand.class,
+                ModifyCommand.class,
                 VersionCommand.class,
                 DoctorCommand.class
         }
@@ -88,8 +90,8 @@ public class Main implements Runnable {
             return;
         }
         String command = firstNonOption(args);
-        if (command == null
-                || command.equals("update") || command.equals("completion") || command.equals("version")) {
+        if (command == null || command.equals("update") || command.equals("modify")
+                || command.equals("completion") || command.equals("version")) {
             return;
         }
         try {

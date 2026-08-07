@@ -54,7 +54,7 @@ override with `--deps` in non-interactive mode.
 - 🩺 **Environment doctor** (`doctor`) — checks Java / Maven / Git.
 - 💾 **Saved defaults** (`config`) — persist your group id, Java version, dependencies, etc.
 - 🧭 **New-user guide** (`guide`) and **shell completion** (`completion`) for bash/zsh.
-- ⬆️ **Self-update** (`update`) — check for and download a newer release.
+- ⬆️ **Self-update** (`update` / `modify`) — startup notice, and update-to-latest from the terminal.
 - 🎨 Coloured, user-friendly progress output (auto-disabled when piped or `NO_COLOR` is set).
 - 🧩 Optional post-generation actions: `--git`, `--open` (VS Code), `--build`.
 - 🛡️ Safe ZIP extraction (path-traversal / "zip-slip" protection).
@@ -237,6 +237,13 @@ best-effort check (at most once/day, cached, never blocking) that you can turn o
 
 Because a running executable can't reliably overwrite itself, the installer hands off to the native
 package (which upgrades your existing install in place). Requires an internet connection.
+
+To manage an existing install from the terminal, use `modify` — it shows your version and install
+location, then runs the update-to-latest flow:
+
+```bash
+springcli modify
+```
 
 ### Getting-started guide
 

@@ -37,6 +37,7 @@ public class GuideCommand implements Callable<Integer> {
 
         section("Other");
         line("springcli update", "Check for a newer version");
+        line("springcli modify", "Manage this install (update to latest)");
         line("springcli doctor", "Check your Java / Maven / Git setup");
         line("springcli --help", "Full command reference");
 
