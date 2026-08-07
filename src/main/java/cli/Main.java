@@ -1,7 +1,9 @@
 package cli;
 
+import commands.CompletionCommand;
 import commands.ConfigCommand;
 import commands.DoctorCommand;
+import commands.GuideCommand;
 import commands.ListCommand;
 import commands.NewCommand;
 import commands.SearchCommand;
@@ -17,11 +19,21 @@ import picocli.CommandLine.Option;
         mixinStandardHelpOptions = true,
         versionProvider = Main.VersionProvider.class,
         description = "Scaffold Spring Boot projects using the Spring Initializr API.",
+        footerHeading = "%nExamples:%n",
+        footer = {
+                "  springcli new my-app       Create a project with the interactive wizard",
+                "  springcli search web       Find dependencies by keyword",
+                "  springcli config set groupId com.acme   Save a default",
+                "",
+                "New here? Run 'springcli guide' for a getting-started walkthrough."
+        },
         subcommands = {
                 NewCommand.class,
                 SearchCommand.class,
                 ListCommand.class,
                 ConfigCommand.class,
+                GuideCommand.class,
+                CompletionCommand.class,
                 VersionCommand.class,
                 DoctorCommand.class
         }
