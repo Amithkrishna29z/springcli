@@ -59,6 +59,23 @@ public class PomEditor {
         return deps;
     }
 
+    /**
+     * The Spring Boot version declared in the {@code <parent>} (the
+     * {@code spring-boot-starter-parent} that manages dependency versions), or {@code null} if this
+     * pom doesn't use it.
+     */
+    public String springBootParentVersion(String pomXml) {
+        Document doc = parse(pomXml);
+        NodeList parents = doc.getElementsByTagName("parent");
+        for (int i = 0; i < parents.getLength(); i++) {
+            Element e = (Element) parents.item(i);
+            if ("spring-boot-starter-parent".equals(childText(e, "artifactId"))) {
+                return childText(e, "version");
+            }
+        }
+        return null;
+    }
+
     /** True when the pom has exactly one {@code <dependencies>} block and can be edited safely. */
     public boolean hasSingleDependenciesSection(String pomXml) {
         return count(pomXml, "<dependencies>") == 1 && pomXml.contains("</dependencies>");

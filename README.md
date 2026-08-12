@@ -53,6 +53,8 @@ override with `--deps` in non-interactive mode.
 - 🔍 **Dependency search & listing** (`search`, `list`).
 - ➕ **Add / remove dependencies in an existing project** (`add`, `remove`) — injects or deletes the
   correct Maven coordinates in your `pom.xml`, no hand-editing or trips back to start.spring.io.
+- 📋 **Inspect your project** (`deps`, `outdated`) — list the dependencies your `pom.xml` already
+  declares, and check whether a newer Spring Boot version is available.
 - 📦 Downloads and extracts `starter.zip`, then deletes the archive.
 - 🩺 **Environment doctor** (`doctor`) — checks Java / Maven / Git.
 - 💾 **Saved defaults** (`config`) — persist your group id, Java version, dependencies, etc.
@@ -213,6 +215,20 @@ Notes:
   `<dependencyManagement>` section is detected it refuses to guess rather than risk corrupting the file.
 - Requires an internet connection (to resolve coordinates from Initializr).
 
+### Inspect your project
+
+`deps` lists what your `pom.xml` already declares (offline, no network), and `outdated` tells you
+whether a newer Spring Boot release is out:
+
+```bash
+springcli deps                 # list installed dependencies (+ their scope/optional flags)
+springcli outdated             # is your Spring Boot <parent> version behind the latest?
+springcli deps -f path/to/pom.xml
+```
+
+Because starters are version-managed by the `spring-boot-starter-parent`, `outdated` reports whether
+your **Spring Boot** version is behind — the one bump that upgrades the whole managed set at once.
+
 ### Search dependencies
 
 ```bash
@@ -334,7 +350,7 @@ independently unit-testable (HTTP is mocked in tests).
 
 ```
 cli/         Main (entry point + banner + global error handling), ServiceFactory (composition root)
-commands/    NewCommand, AddCommand, RemoveCommand, SearchCommand, ListCommand, VersionCommand, DoctorCommand  (Picocli)
+commands/    NewCommand, AddCommand, RemoveCommand, DepsCommand, OutdatedCommand, SearchCommand, ListCommand, VersionCommand, DoctorCommand  (Picocli)
 service/     InitializrClient (HTTP), MetadataService (parse/cache/search/validate),
              ProjectGenerator (download→extract→cleanup), ZipExtractor (safe unzip),
              PomEditor (read deps via DOM, inject via text splice)

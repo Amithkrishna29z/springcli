@@ -2,6 +2,8 @@ package cli;
 
 import commands.AddCommand;
 import commands.RemoveCommand;
+import commands.DepsCommand;
+import commands.OutdatedCommand;
 import commands.CompletionCommand;
 import commands.ConfigCommand;
 import commands.DoctorCommand;
@@ -37,6 +39,8 @@ import picocli.CommandLine.Option;
                 NewCommand.class,
                 AddCommand.class,
                 RemoveCommand.class,
+                DepsCommand.class,
+                OutdatedCommand.class,
                 SearchCommand.class,
                 ListCommand.class,
                 ConfigCommand.class,

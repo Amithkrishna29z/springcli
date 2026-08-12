@@ -8,6 +8,7 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -95,6 +96,25 @@ class PomEditorTest {
     void removeIgnoresDependenciesNotPresent() {
         String updated = editor.removeDependencies(POM, Set.of("com.acme:absent"));
         assertEquals(POM, updated);
+    }
+
+    @Test
+    void readsSpringBootParentVersion() {
+        String pom = """
+                <project>
+                    <parent>
+                        <groupId>org.springframework.boot</groupId>
+                        <artifactId>spring-boot-starter-parent</artifactId>
+                        <version>3.2.8</version>
+                    </parent>
+                </project>
+                """;
+        assertEquals("3.2.8", editor.springBootParentVersion(pom));
+    }
+
+    @Test
+    void springBootParentVersionIsNullWhenAbsent() {
+        assertNull(editor.springBootParentVersion(POM));
     }
 
     @Test
