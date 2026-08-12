@@ -51,8 +51,8 @@ override with `--deps` in non-interactive mode.
 - 🔎 **Live metadata** from `start.spring.io/metadata/client`, **cached on disk** (24h) so
   `search`/`list`/`new` are instant and keep working offline.
 - 🔍 **Dependency search & listing** (`search`, `list`).
-- ➕ **Add dependencies to an existing project** (`add`) — injects the correct Maven coordinates into
-  your `pom.xml`, no hand-editing or trips back to start.spring.io.
+- ➕ **Add / remove dependencies in an existing project** (`add`, `remove`) — injects or deletes the
+  correct Maven coordinates in your `pom.xml`, no hand-editing or trips back to start.spring.io.
 - 📦 Downloads and extracts `starter.zip`, then deletes the archive.
 - 🩺 **Environment doctor** (`doctor`) — checks Java / Maven / Git.
 - 💾 **Saved defaults** (`config`) — persist your group id, Java version, dependencies, etc.
@@ -199,8 +199,16 @@ springcli add postgresql --dry-run    # preview the <dependency> block, don't wr
 springcli add web -f path/to/pom.xml  # target a specific pom
 ```
 
+Changed your mind? `remove` is the exact inverse — it resolves the same ids to their coordinates and
+deletes any matching `<dependency>` nodes, leaving the rest of the file untouched:
+
+```bash
+springcli remove redis                # remove by id (space or comma separated)
+springcli remove postgresql --dry-run # list what would be removed, don't write
+```
+
 Notes:
-- **Maven only** for now — in a Gradle project `add` reports that and does nothing.
+- **Maven only** for now — in a Gradle project `add`/`remove` report that and do nothing.
 - Only the standard generated layout (a single project-level `<dependencies>` block) is edited; if a
   `<dependencyManagement>` section is detected it refuses to guess rather than risk corrupting the file.
 - Requires an internet connection (to resolve coordinates from Initializr).
@@ -326,7 +334,7 @@ independently unit-testable (HTTP is mocked in tests).
 
 ```
 cli/         Main (entry point + banner + global error handling), ServiceFactory (composition root)
-commands/    NewCommand, AddCommand, SearchCommand, ListCommand, VersionCommand, DoctorCommand  (Picocli)
+commands/    NewCommand, AddCommand, RemoveCommand, SearchCommand, ListCommand, VersionCommand, DoctorCommand  (Picocli)
 service/     InitializrClient (HTTP), MetadataService (parse/cache/search/validate),
              ProjectGenerator (download→extract→cleanup), ZipExtractor (safe unzip),
              PomEditor (read deps via DOM, inject via text splice)

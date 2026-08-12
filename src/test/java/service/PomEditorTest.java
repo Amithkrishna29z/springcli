@@ -4,6 +4,7 @@ import exception.SpringCliException;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -77,6 +78,23 @@ class PomEditorTest {
         assertEquals(3, editor.dependencies(updated).size());
         // still a single, well-formed dependencies section
         assertTrue(editor.hasSingleDependenciesSection(updated));
+    }
+
+    @Test
+    void removesMatchingDependencyPreservingTheRest() {
+        String updated = editor.removeDependencies(POM,
+                Set.of("org.springframework.boot:spring-boot-starter-test"));
+
+        List<String> keys = editor.dependencies(updated).stream().map(PomEditor.Dep::key).toList();
+        assertEquals(List.of("org.springframework.boot:spring-boot-starter-web"), keys);
+        assertFalse(updated.contains("spring-boot-starter-test"));
+        assertTrue(editor.hasSingleDependenciesSection(updated));
+    }
+
+    @Test
+    void removeIgnoresDependenciesNotPresent() {
+        String updated = editor.removeDependencies(POM, Set.of("com.acme:absent"));
+        assertEquals(POM, updated);
     }
 
     @Test

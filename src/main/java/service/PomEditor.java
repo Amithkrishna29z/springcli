@@ -12,6 +12,7 @@ import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -29,6 +30,10 @@ public class PomEditor {
 
     private static final Pattern FIRST_DEPENDENCY_INDENT =
             Pattern.compile("\\n([ \\t]*)<dependency>");
+
+    /** A whole {@code <dependency>…</dependency>} element, its leading indent and trailing newline. */
+    private static final Pattern DEPENDENCY_BLOCK =
+            Pattern.compile("(?m)^[ \\t]*<dependency>[\\s\\S]*?</dependency>[ \\t]*\\r?\\n?");
 
     public record Dep(String groupId, String artifactId, String scope, boolean optional, String version) {
         public String key() {
@@ -73,6 +78,36 @@ public class PomEditor {
         int close = pomXml.indexOf("</dependencies>");
         int lineStart = startOfLine(pomXml, close);
         return pomXml.substring(0, lineStart) + block + pomXml.substring(lineStart);
+    }
+
+    /**
+     * Returns a copy of {@code pomXml} with every {@code <dependency>} whose {@code groupId:artifactId}
+     * is in {@code keys} deleted (block, indentation and trailing newline). Everything else — comments,
+     * ordering, other dependencies — is left byte-for-byte intact.
+     */
+    public String removeDependencies(String pomXml, Set<String> keys) {
+        Matcher m = DEPENDENCY_BLOCK.matcher(pomXml);
+        StringBuilder sb = new StringBuilder();
+        while (m.find()) {
+            String block = m.group();
+            String key = keyOf(block);
+            m.appendReplacement(sb,
+                    key != null && keys.contains(key) ? "" : Matcher.quoteReplacement(block));
+        }
+        m.appendTail(sb);
+        return sb.toString();
+    }
+
+    /** {@code groupId:artifactId} of a single dependency block, or {@code null} if either is absent. */
+    private static String keyOf(String block) {
+        String group = firstTag(block, "groupId");
+        String artifact = firstTag(block, "artifactId");
+        return group == null || artifact == null ? null : group + ":" + artifact;
+    }
+
+    private static String firstTag(String xml, String tag) {
+        Matcher m = Pattern.compile("<" + tag + ">\\s*(.*?)\\s*</" + tag + ">", Pattern.DOTALL).matcher(xml);
+        return m.find() ? m.group(1).trim() : null;
     }
 
     /** Renders {@code toAdd} as {@code <dependency>} XML, indented to match the given pom. */
