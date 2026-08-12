@@ -15,7 +15,7 @@
 
 set -euo pipefail
 
-VERSION="1.3.1"
+VERSION="1.4.0"
 IDENTIFIER="dev.springcli"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
