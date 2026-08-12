@@ -250,16 +250,19 @@ Check whether a newer release is available, and optionally download the installe
 
 ```bash
 springcli update              # report current vs latest; offers to install if newer
-springcli update --download   # download the installer for your OS and open it
+springcli update --download   # download the installer, install it, and clean up
 ```
 
 When a newer version exists, `springcli update` prompts to download and install it right there in the
-terminal. springcli also shows a small **"update available" notice at startup** — a throttled,
+terminal. It runs the OS installer **silently** and **deletes the downloaded installer** once it
+finishes. springcli also shows a small **"update available" notice at startup** — a throttled,
 best-effort check (at most once/day, cached, never blocking) that you can turn off with
 `SPRINGCLI_NO_UPDATE_CHECK=1`.
 
-Because a running executable can't reliably overwrite itself, the installer hands off to the native
-package (which upgrades your existing install in place). Requires an internet connection.
+Because a running executable can't overwrite itself on Windows, the update spawns a small detached
+helper that waits for springcli to exit, runs the installer silently (approve the one UAC prompt),
+then removes the installer. On macOS/Linux the installer runs in place (you may be prompted for your
+password). Requires an internet connection.
 
 To manage an existing install from the terminal, use `modify` — it shows your version and install
 location, then runs the update-to-latest flow:

@@ -16,7 +16,7 @@
 
 set -euo pipefail
 
-VERSION="1.3.0"
+VERSION="1.3.1"
 TYPE="${1:-deb}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"

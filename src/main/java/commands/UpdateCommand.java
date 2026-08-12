@@ -12,22 +12,29 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.Callable;
 
 /**
  * {@code springcli update} — checks GitHub for a newer release and reports it. With {@code --download}
- * it fetches the installer for the current OS and opens it; the native installer then upgrades the
- * existing install in place (a running executable cannot reliably overwrite itself, so we hand off
- * to the OS installer rather than patching files directly).
+ * it fetches the installer for the current OS, runs it silently to upgrade in place, and deletes the
+ * downloaded installer once it finishes.
+ *
+ * <p>On Windows a running executable is file-locked, so springcli cannot overwrite itself while it is
+ * still running. We therefore hand the install off to a small detached helper script that waits for
+ * this process to exit, runs the Inno Setup installer silently, then removes the installer and itself.
+ * On macOS/Linux the running binary can be replaced in place, so the OS installer is invoked directly
+ * and the file deleted afterwards.
  */
-@Command(name = "update", description = "Check for a newer springcli release (optionally download it).")
+@Command(name = "update", description = "Check for a newer springcli release (optionally download and install it).")
 public class UpdateCommand implements Callable<Integer> {
 
-    @Option(names = "--download", description = "Download the installer for your OS and open it.")
+    @Option(names = "--download", description = "Download the installer for your OS, install it, and clean up.")
     private boolean download;
 
     private final UpdateService updateService;
@@ -58,10 +65,10 @@ public class UpdateCommand implements Callable<Integer> {
         System.out.println("Installer:     " + updateService.downloadUrl(asset));
 
         if (download || confirmInstall()) {
-            return downloadAndOpen(updateService.downloadUrl(asset), asset);
+            return downloadAndInstall(updateService.downloadUrl(asset), asset);
         }
         System.out.println("\nRun " + Ansi.cyan("springcli update --download")
-                + " to download and launch the installer.");
+                + " to download and install it automatically.");
         return 0;
     }
 
@@ -93,20 +100,16 @@ public class UpdateCommand implements Callable<Integer> {
         return "springcli-amd64.deb";
     }
 
-    private int downloadAndOpen(String url, String asset) {
+    private int downloadAndInstall(String url, String asset) {
         Ansi.info("Downloading " + asset + "...");
+        Path file;
         try {
             HttpClient client = HttpClient.newBuilder()
                     .followRedirects(HttpClient.Redirect.NORMAL)
                     .connectTimeout(Duration.ofSeconds(15))
                     .build();
 
-            Path dir = Path.of(System.getProperty("user.home"), "Downloads");
-            if (!Files.isDirectory(dir)) {
-                dir = Files.createTempDirectory("springcli-update");
-            }
-            Path file = dir.resolve(asset);
-
+            file = Files.createTempDirectory("springcli-update").resolve(asset);
             HttpResponse<Path> response = client.send(
                     HttpRequest.newBuilder().uri(URI.create(url)).header("User-Agent", "springcli").GET().build(),
                     HttpResponse.BodyHandlers.ofFile(file));
@@ -115,9 +118,6 @@ public class UpdateCommand implements Callable<Integer> {
                 return 1;
             }
             Ansi.success("Downloaded to " + file);
-            openInstaller(file);
-            System.out.println("Complete the installer to finish updating. springcli will now exit.");
-            return 0;
         } catch (IOException e) {
             Ansi.error("Download failed: " + e.getMessage());
             return 1;
@@ -126,6 +126,68 @@ public class UpdateCommand implements Callable<Integer> {
             Ansi.error("Download was interrupted.");
             return 1;
         }
+
+        try {
+            if (ProcessUtils.isWindows()) {
+                return installWindows(file);
+            }
+            return installUnix(file, asset);
+        } catch (IOException e) {
+            Ansi.error("Could not start the installer: " + e.getMessage());
+            openInstaller(file);
+            return 1;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            Ansi.error("Install was interrupted.");
+            return 1;
+        }
+    }
+
+    /**
+     * Launches a detached helper that waits for this springcli.exe to exit (releasing its file lock),
+     * runs the Inno Setup installer silently, then deletes the installer and the helper itself.
+     */
+    private int installWindows(Path installer) throws IOException {
+        String exe = "springcli.exe";
+        Path script = Files.createTempFile("springcli-update", ".cmd");
+        String batch = String.join("\r\n",
+                "@echo off",
+                ":wait",
+                "tasklist /FI \"IMAGENAME eq " + exe + "\" | find /I \"" + exe + "\" >nul",
+                "if not errorlevel 1 (",
+                "  timeout /t 1 /nobreak >nul",
+                "  goto wait",
+                ")",
+                "\"" + installer + "\" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART",
+                "del /f /q \"" + installer + "\"",
+                "del /f /q \"%~f0\"",
+                "");
+        Files.writeString(script, batch, StandardCharsets.UTF_8);
+
+        new ProcessBuilder("cmd.exe", "/c", "start", "", "/min", script.toString()).start();
+        System.out.println("Installing " + Ansi.green("in the background") + " once springcli exits"
+                + " (approve the UAC prompt if asked). springcli will now exit.");
+        return 0;
+    }
+
+    /**
+     * Runs the platform installer directly and waits for it to finish, then removes the file. Unix
+     * allows replacing a running binary in place, so no detached helper is needed.
+     */
+    private int installUnix(Path installer, String asset) throws IOException, InterruptedException {
+        List<String> command = asset.endsWith(".pkg")
+                ? List.of("sudo", "installer", "-pkg", installer.toString(), "-target", "/")
+                : List.of("sudo", "dpkg", "-i", installer.toString());
+
+        Ansi.info("Installing (you may be prompted for your password)...");
+        int code = new ProcessBuilder(command).inheritIO().start().waitFor();
+        Files.deleteIfExists(installer);
+        if (code != 0) {
+            Ansi.error("Installer exited with code " + code + ".");
+            return 1;
+        }
+        Ansi.success("Updated. Restart springcli to use the new version.");
+        return 0;
     }
 
     private void openInstaller(Path file) {
