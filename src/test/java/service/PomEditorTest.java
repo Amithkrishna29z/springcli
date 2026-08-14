@@ -36,6 +36,30 @@ class PomEditorTest {
             </project>
             """;
 
+    private static final String PARENT_POM = """
+            <project xmlns="http://maven.apache.org/POM/4.0.0">
+                <parent>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-parent</artifactId>
+                    <version>3.2.8</version>
+                </parent>
+                <artifactId>demo</artifactId>
+            </project>
+            """;
+
+    @Test
+    void setsParentVersionInPlaceLeavingEverythingElseIntact() {
+        String updated = editor.setSpringBootParentVersion(PARENT_POM, "3.3.2");
+        assertEquals("3.3.2", editor.springBootParentVersion(updated));
+        // Surgical: only the version changed, structure/indentation preserved.
+        assertEquals(PARENT_POM.replace("<version>3.2.8</version>", "<version>3.3.2</version>"), updated);
+    }
+
+    @Test
+    void setParentVersionReturnsNullWhenNoSpringBootParent() {
+        assertNull(editor.setSpringBootParentVersion(POM, "3.3.2"));
+    }
+
     @Test
     void readsAllDependencies() {
         List<String> keys = editor.dependencies(POM).stream().map(PomEditor.Dep::key).toList();

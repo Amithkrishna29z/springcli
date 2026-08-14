@@ -55,6 +55,10 @@ override with `--deps` in non-interactive mode.
   correct Maven coordinates in your `pom.xml`, no hand-editing or trips back to start.spring.io.
 - 📋 **Inspect your project** (`deps`, `outdated`) — list the dependencies your `pom.xml` already
   declares, and check whether a newer Spring Boot version is available.
+- ⬆️ **Upgrade Spring Boot** (`upgrade`) — bump the `spring-boot-starter-parent` version in your
+  `pom.xml` to the latest (or a pinned `--to`) release, in place.
+- 🛡️ **Vulnerability audit** (`audit`) — check pinned dependency versions against the free
+  [OSV](https://osv.dev) database; exits non-zero on findings so it works as a CI gate.
 - 📦 Downloads and extracts `starter.zip`, then deletes the archive.
 - 🩺 **Environment doctor** (`doctor`) — checks Java / Maven / Git.
 - 💾 **Saved defaults** (`config`) — persist your group id, Java version, dependencies, etc.
@@ -229,6 +233,38 @@ springcli deps -f path/to/pom.xml
 Because starters are version-managed by the `spring-boot-starter-parent`, `outdated` reports whether
 your **Spring Boot** version is behind — the one bump that upgrades the whole managed set at once.
 
+### Upgrade Spring Boot
+
+Where `outdated` only *reports* that a newer release is available, `upgrade` *applies* the bump —
+it rewrites the `spring-boot-starter-parent` `<version>` in your `pom.xml` in place, leaving the rest
+of the file (comments, ordering, indentation) untouched:
+
+```bash
+springcli upgrade              # bump to the latest Spring Boot release
+springcli upgrade --to 3.3.5   # bump to a specific version (validated against Initializr)
+springcli upgrade --dry-run    # show the change without writing
+springcli upgrade -f path/to/pom.xml
+```
+
+Bumping the parent upgrades the whole managed dependency set at once, so rebuild afterwards (e.g.
+`./mvnw clean install`) to pick up the new versions. Same scope as the other pom editors: **Maven
+only**, and it needs the single generated `<parent>` block.
+
+### Audit for vulnerabilities
+
+`audit` checks your dependencies against the free, no-auth [OSV](https://osv.dev) database and prints
+any known CVEs with their severity:
+
+```bash
+springcli audit                # exits 1 if vulnerabilities are found, 0 if clean
+springcli audit -f path/to/pom.xml
+```
+
+The non-zero exit on findings makes it drop-in for a CI step. Scope: `audit` checks dependencies that
+declare a concrete `<version>`. Spring-managed starters have no explicit version in the pom (they're
+governed by your Spring Boot version), so those aren't individually queried — keep Boot current with
+`outdated` to pick up the managed set's security fixes.
+
 ### Search dependencies
 
 ```bash
@@ -350,7 +386,7 @@ independently unit-testable (HTTP is mocked in tests).
 
 ```
 cli/         Main (entry point + banner + global error handling), ServiceFactory (composition root)
-commands/    NewCommand, AddCommand, RemoveCommand, DepsCommand, OutdatedCommand, SearchCommand, ListCommand, VersionCommand, DoctorCommand  (Picocli)
+commands/    NewCommand, AddCommand, RemoveCommand, DepsCommand, OutdatedCommand, UpgradeCommand, AuditCommand, SearchCommand, ListCommand, VersionCommand, DoctorCommand  (Picocli)
 service/     InitializrClient (HTTP), MetadataService (parse/cache/search/validate),
              ProjectGenerator (download→extract→cleanup), ZipExtractor (safe unzip),
              PomEditor (read deps via DOM, inject via text splice)

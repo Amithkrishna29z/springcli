@@ -35,6 +35,14 @@ public class PomEditor {
     private static final Pattern DEPENDENCY_BLOCK =
             Pattern.compile("(?m)^[ \\t]*<dependency>[\\s\\S]*?</dependency>[ \\t]*\\r?\\n?");
 
+    /** A whole {@code <parent>…</parent>} element. */
+    private static final Pattern PARENT_BLOCK =
+            Pattern.compile("<parent>[\\s\\S]*?</parent>");
+
+    /** A {@code <version>…</version>} element (first one within a block). */
+    private static final Pattern VERSION_TAG =
+            Pattern.compile("<version>\\s*.*?\\s*</version>", Pattern.DOTALL);
+
     public record Dep(String groupId, String artifactId, String scope, boolean optional, String version) {
         public String key() {
             return groupId + ":" + artifactId;
@@ -72,6 +80,31 @@ public class PomEditor {
             if ("spring-boot-starter-parent".equals(childText(e, "artifactId"))) {
                 return childText(e, "version");
             }
+        }
+        return null;
+    }
+
+    /**
+     * Returns a copy of {@code pomXml} with the {@code spring-boot-starter-parent} version replaced by
+     * {@code newVersion}, leaving the rest of the file — comments, ordering, indentation — byte-for-byte
+     * intact. Returns {@code null} when there's no such parent with a {@code <version>} to rewrite
+     * (matching {@link #springBootParentVersion}).
+     */
+    public String setSpringBootParentVersion(String pomXml, String newVersion) {
+        Matcher parent = PARENT_BLOCK.matcher(pomXml);
+        while (parent.find()) {
+            String block = parent.group();
+            if (!block.contains("spring-boot-starter-parent")) {
+                continue;
+            }
+            Matcher version = VERSION_TAG.matcher(block);
+            if (!version.find()) {
+                return null;
+            }
+            String newBlock = block.substring(0, version.start())
+                    + "<version>" + newVersion + "</version>"
+                    + block.substring(version.end());
+            return pomXml.substring(0, parent.start()) + newBlock + pomXml.substring(parent.end());
         }
         return null;
     }
