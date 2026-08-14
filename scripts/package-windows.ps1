@@ -13,7 +13,7 @@
 
 $ErrorActionPreference = "Stop"
 
-$Version = "1.4.0"
+$Version = "1.5.0"
 $Root = Split-Path -Parent $PSScriptRoot
 Set-Location $Root
 

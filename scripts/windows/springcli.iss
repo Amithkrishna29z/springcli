@@ -11,7 +11,7 @@
 ; Build with: ISCC.exe scripts\windows\springcli.iss   (see package-windows.ps1)
 
 #define AppName "springcli"
-#define AppVersion "1.4.0"
+#define AppVersion "1.5.0"
 #define AppExe "springcli.exe"
 
 [Setup]
