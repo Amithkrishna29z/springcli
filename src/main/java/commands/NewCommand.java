@@ -3,6 +3,7 @@ package commands;
 import cli.ServiceFactory;
 import config.Defaults;
 import exception.SpringCliException;
+import model.Architecture;
 import model.ProjectRequest;
 import model.UserConfig;
 import prompts.InteractiveWizard;
@@ -61,6 +62,10 @@ public class NewCommand implements Callable<Integer> {
             description = "Comma-separated dependency ids, e.g. web,data-jpa. "
                     + "If omitted, a sensible default set is used (web, data-jpa, devtools, validation, lombok).")
     private List<String> dependencies = List.of();
+
+    @Option(names = "--architecture",
+            description = "Package skeleton to scaffold: none, layered, clean or hexagonal (default: none).")
+    private Architecture architecture = Architecture.NONE;
 
     @Option(names = "--force", description = "Overwrite a non-empty destination directory.")
     private boolean force;
@@ -149,6 +154,7 @@ public class NewCommand implements Callable<Integer> {
                 .bootVersion(boot)
                 .javaVersion(java)
                 .dependencies(deps)
+                .architecture(architecture)
                 .build();
     }
 

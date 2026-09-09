@@ -65,6 +65,8 @@ override with `--deps` in non-interactive mode.
 - 🧭 **New-user guide** (`guide`) and **shell completion** (`completion`) for bash/zsh.
 - ⬆️ **Self-update** (`update` / `modify`) — startup notice, and update-to-latest from the terminal.
 - 🎨 Coloured, user-friendly progress output (auto-disabled when piped or `NO_COLOR` is set).
+- 🏛️ **Architecture scaffolding** — choose *layered*, *clean* or *hexagonal* in the wizard (or
+  `--architecture`) and the matching package skeleton is created inside your base package.
 - 🧩 Optional post-generation actions: `--git`, `--open` (VS Code), `--build`.
 - 🛡️ Safe ZIP extraction (path-traversal / "zip-slip" protection).
 
@@ -154,8 +156,9 @@ springcli new my-app
 ```
 
 The wizard asks for project name, group/artifact/package, build tool, language, Spring Boot
-version, Java version, packaging, and lets you **search and multi-select dependencies** before
-showing a summary and generating the project into `./<artifactId>`.
+version, Java version, packaging, **architecture** (see below), and lets you **search and
+multi-select dependencies** before showing a summary and generating the project into
+`./<artifactId>`.
 
 ### Create a project (non-interactive)
 
@@ -186,10 +189,51 @@ springcli new my-app --yes \
 | `--boot-version` | Spring Boot version (validated against metadata). |
 | `--java-version` | Java version (validated against metadata). |
 | `--deps` | Comma-separated dependency ids (e.g. `web,data-jpa`). |
+| `--architecture` | Package skeleton to scaffold: `none` (default), `layered`, `clean`, `hexagonal`. |
 | `--force` | Overwrite a non-empty destination directory. |
 | `--git` | Run `git init` in the new project. |
 | `--open` | Open the project in VS Code if `code` is on the PATH. |
 | `--build` | Run `mvnw clean install` (or `gradlew build`) afterwards. |
+
+### Choose a project architecture
+
+Spring Initializr only ever gives you a flat package with an application class in it. `springcli`
+can lay out the packages for you as well — the wizard asks, or pass `--architecture` in
+non-interactive mode:
+
+```
+Architecture:
+   1) None (flat) - just the Initializr layout  (default)
+   2) Layered - controller / service / repository
+   3) Clean - domain / application / infrastructure / presentation
+   4) Hexagonal - ports and adapters
+```
+
+Each package is created as an empty directory with a `.gitkeep` inside, so the layout survives
+`git add` and nothing extra has to compile. Your generated sources are never touched, and `none`
+(the default) leaves the project exactly as Initializr shipped it.
+
+| Architecture | Packages created under your base package |
+|--------------|------------------------------------------|
+| `layered` | `config`, `controller`, `dto`, `exception`, `model`, `repository`, `service` |
+| `clean` | `domain/model`, `domain/repository`, `application/service`, `application/dto`, `infrastructure/persistence`, `infrastructure/config`, `presentation/controller` |
+| `hexagonal` | `domain/model`, `application/port/inbound`, `application/port/outbound`, `application/service`, `adapter/inbound/web`, `adapter/outbound/persistence`, `config` |
+
+For example, `springcli new my-app --yes --package com.acme.myapp --architecture layered` produces:
+
+```
+my-app/src/main/java/com/acme/myapp/
+├── MyAppApplication.java
+├── config/
+├── controller/
+├── dto/
+├── exception/
+├── model/
+├── repository/
+└── service/
+```
+
+Kotlin and Groovy projects are scaffolded under `src/main/kotlin` / `src/main/groovy` instead.
 
 ### Add dependencies to an existing project
 

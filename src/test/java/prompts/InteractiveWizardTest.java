@@ -1,5 +1,6 @@
 package prompts;
 
+import model.Architecture;
 import model.ProjectRequest;
 import model.UserConfig;
 import org.junit.jupiter.api.Test;
@@ -38,6 +39,7 @@ class InteractiveWizardTest {
         ProjectRequest r = run("myapp",
                 "", "", "", "", "",   // name, group, artifact, package, description
                 "", "", "", "", "",   // type, language, packaging, boot, java
+                "",                    // architecture -> default (none)
                 "",                    // finish dependency search
                 "");                   // confirm -> default (yes)
 
@@ -52,6 +54,20 @@ class InteractiveWizardTest {
         assertEquals("3.3.2", r.bootVersion());
         assertEquals("21", r.javaVersion());
         assertEquals(List.of("web", "data-jpa", "devtools", "validation", "lombok"), r.dependencies());
+        assertEquals(Architecture.NONE, r.architecture());
+    }
+
+    @Test
+    void architectureCanBeSelected() {
+        ProjectRequest r = run("myapp",
+                "", "", "", "", "",   // name, group, artifact, package, description
+                "", "", "", "", "",   // type, language, packaging, boot, java
+                "3",                   // architecture -> clean
+                "",                    // finish deps
+                "");                   // confirm
+
+        assertNotNull(r);
+        assertEquals(Architecture.CLEAN, r.architecture());
     }
 
     @Test
@@ -59,6 +75,7 @@ class InteractiveWizardTest {
         ProjectRequest r = run("myapp",
                 "", "", "", "", "",
                 "", "", "", "", "",
+                "",      // architecture
                 "web",   // search
                 "1",     // toggle "Spring Web" (was preselected) -> off
                 "",      // finish
@@ -74,6 +91,7 @@ class InteractiveWizardTest {
         ProjectRequest r = run("myapp",
                 "", "", "", "", "",
                 "", "", "", "", "",
+                "",          // architecture
                 "postgres",  // matches postgresql
                 "1",         // add it
                 "",
@@ -88,6 +106,7 @@ class InteractiveWizardTest {
         ProjectRequest r = run("myapp",
                 "", "", "", "", "",
                 "", "", "", "", "",
+                "",    // architecture
                 "",    // finish deps
                 "n");  // decline
 
@@ -107,6 +126,7 @@ class InteractiveWizardTest {
                 "",          // packaging
                 "",          // boot
                 "",          // java
+                "",          // architecture
                 "",          // finish deps
                 "");         // confirm
 
@@ -125,6 +145,7 @@ class InteractiveWizardTest {
         ProjectRequest r = run(config, "myapp",
                 "", "", "", "", "",   // name, group, artifact, package, description
                 "", "", "", "", "",   // type, language, packaging, boot, java
+                "",                    // architecture
                 "",                    // finish deps
                 "");                   // confirm
 
@@ -148,6 +169,7 @@ class InteractiveWizardTest {
                 "2",               // packaging -> war
                 "2",               // boot -> 3.2.8
                 "1",               // java -> 17
+                "",                // architecture -> default none
                 "",                // finish deps
                 "y");              // confirm
 

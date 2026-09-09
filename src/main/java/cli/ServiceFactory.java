@@ -1,5 +1,6 @@
 package cli;
 
+import service.ArchitectureScaffolder;
 import service.InitializrClient;
 import service.MetadataCache;
 import service.MetadataService;
@@ -28,7 +29,7 @@ public class ServiceFactory {
                         Path.of(System.getProperty("user.home"), ".springcli", "metadata-cache.json"),
                         Duration.ofHours(24));
         this.metadataService = new MetadataService(initializrClient, cache);
-        this.projectGenerator = new ProjectGenerator(initializrClient, new ZipExtractor());
+        this.projectGenerator = new ProjectGenerator(initializrClient, new ZipExtractor(), new ArchitectureScaffolder());
     }
 
     public MetadataService metadataService() {

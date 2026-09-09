@@ -14,10 +14,13 @@ public class ProjectGenerator {
 
     private final InitializrClient client;
     private final ZipExtractor zipExtractor;
+    private final ArchitectureScaffolder architectureScaffolder;
 
-    public ProjectGenerator(InitializrClient client, ZipExtractor zipExtractor) {
+    public ProjectGenerator(InitializrClient client, ZipExtractor zipExtractor,
+                            ArchitectureScaffolder architectureScaffolder) {
         this.client = client;
         this.zipExtractor = zipExtractor;
+        this.architectureScaffolder = architectureScaffolder;
     }
 
     public void generate(ProjectRequest request, Path targetDir, boolean force) {
@@ -37,6 +40,8 @@ public class ProjectGenerator {
 
             Ansi.info("Extracting files...");
             zipExtractor.extract(tempZip, targetDir);
+
+            architectureScaffolder.scaffold(request, targetDir);
         } catch (IOException e) {
 
             FileUtils.deleteQuietly(targetDir);

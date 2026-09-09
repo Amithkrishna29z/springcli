@@ -1,6 +1,7 @@
 package prompts;
 
 import config.Defaults;
+import model.Architecture;
 import model.Metadata;
 import model.ProjectRequest;
 import model.UserConfig;
@@ -63,6 +64,8 @@ public class InteractiveWizard {
         String packaging = choose("Packaging", md.packaging(), effectiveDefault(md.packaging(), config.getPackaging()));
         String bootVersion = choose("Spring Boot version", md.bootVersion(), md.bootVersion().defaultValue());
         String javaVersion = choose("Java version", md.javaVersion(), effectiveDefault(md.javaVersion(), config.getJavaVersion()));
+        Architecture architecture = Architecture.fromId(
+                choose("Architecture", Architecture.asSelect(), Architecture.NONE.id()));
 
         List<String> dependencies = selectDependencies();
 
@@ -78,6 +81,7 @@ public class InteractiveWizard {
                 .description(description)
                 .packageName(packageName)
                 .dependencies(dependencies)
+                .architecture(architecture)
                 .build();
 
         printSummary(request);
@@ -229,6 +233,7 @@ public class InteractiveWizard {
         out.println("  Packaging:   " + r.packaging());
         out.println("  Boot:        " + r.bootVersion());
         out.println("  Java:        " + r.javaVersion());
+        out.println("  Architecture:" + r.architecture().displayName());
         out.println("  Dependencies:" + (r.dependencies().isEmpty() ? " (none)" : " " + String.join(", ", r.dependencies())));
         out.println();
     }
