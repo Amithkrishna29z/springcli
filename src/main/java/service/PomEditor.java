@@ -11,10 +11,12 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * Reads and edits a Maven {@code pom.xml}. Dependencies are <em>read</em> with a DOM parser (robust)
@@ -65,6 +67,13 @@ public class PomEditor {
                     "true".equals(childText(e, "optional")), childText(e, "version")));
         }
         return deps;
+    }
+
+    /** The {@code groupId:artifactId} of every declared dependency (order preserved). */
+    public Set<String> dependencyKeys(String pomXml) {
+        return dependencies(pomXml).stream()
+                .map(Dep::key)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
     /**

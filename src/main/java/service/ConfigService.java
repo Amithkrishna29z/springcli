@@ -20,17 +20,8 @@ public class ConfigService {
     private final Path file;
     private final ObjectMapper mapper = new ObjectMapper();
 
-    public ConfigService() {
-        this(defaultPath());
-    }
-
     public ConfigService(Path file) {
         this.file = file;
-    }
-
-    /** @return the default config location, {@code ~/.springcli/config.json}. */
-    public static Path defaultPath() {
-        return Path.of(System.getProperty("user.home"), ".springcli", "config.json");
     }
 
     public Path path() {

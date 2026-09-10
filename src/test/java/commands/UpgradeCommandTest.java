@@ -1,5 +1,6 @@
 package commands;
 
+import cli.Main;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import picocli.CommandLine;
@@ -43,7 +44,7 @@ class UpgradeCommandTest {
             args[0] = "--file";
             args[1] = pom.toString();
             System.arraycopy(extraArgs, 0, args, 2, extraArgs.length);
-            code[0] = new CommandLine(cmd).execute(args);
+            code[0] = Main.configure(new CommandLine(cmd)).execute(args);
         } finally {
             System.setOut(original);
         }

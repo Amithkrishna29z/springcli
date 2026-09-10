@@ -1,5 +1,6 @@
 package commands;
 
+import cli.Main;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import picocli.CommandLine;
@@ -43,7 +44,7 @@ class DepsCommandTest {
         PrintStream original = System.out;
         System.setOut(new PrintStream(buf, true, StandardCharsets.UTF_8));
         try {
-            code[0] = new CommandLine(new DepsCommand()).execute(args);
+            code[0] = Main.configure(new CommandLine(new DepsCommand())).execute(args);
         } finally {
             System.setOut(original);
         }

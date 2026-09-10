@@ -1,8 +1,9 @@
 package commands;
 
 import cli.Main;
+import cli.ServiceFactory;
+import config.BuildInfo;
 import org.junit.jupiter.api.Test;
-import picocli.CommandLine;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
@@ -26,17 +27,17 @@ class CommandExecutionTest {
             System.setOut(original);
         }
         assertEquals(0, code);
-        assertTrue(buf.toString(StandardCharsets.UTF_8).contains(VersionCommand.VERSION));
+        assertTrue(buf.toString(StandardCharsets.UTF_8).contains(BuildInfo.VERSION));
     }
 
     @Test
     void unknownSubcommandIsAUsageError() {
-        assertNotEquals(0, new CommandLine(new Main()).execute("bogus"));
+        assertNotEquals(0, Main.commandLine(new ServiceFactory()).execute("bogus"));
     }
 
     @Test
     void rootHelpReturnsZero() {
-        assertEquals(0, new CommandLine(new Main()).execute("--help"));
+        assertEquals(0, Main.commandLine(new ServiceFactory()).execute("--help"));
     }
 
     @Test
@@ -45,7 +46,7 @@ class CommandExecutionTest {
         ByteArrayOutputStream buf = new ByteArrayOutputStream();
         System.setOut(new PrintStream(buf, true, StandardCharsets.UTF_8));
         try {
-            new CommandLine(new Main()).execute("--help");
+            Main.commandLine(new ServiceFactory()).execute("--help");
         } finally {
             System.setOut(original);
         }

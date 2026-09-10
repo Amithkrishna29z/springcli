@@ -16,9 +16,9 @@ import commands.NewCommand;
 import commands.SearchCommand;
 import commands.UpdateCommand;
 import commands.VersionCommand;
+import config.BuildInfo;
 import exception.SpringCliException;
 import service.UpdateNotifier;
-import service.UpdateService;
 import util.Ansi;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
@@ -78,18 +78,28 @@ public class Main implements Runnable {
     public static void main(String[] args) {
         forceUtf8Console();
 
-        Main root = new Main();
-        CommandLine cmd = new CommandLine(root)
-                .setExecutionExceptionHandler(new FriendlyExceptionHandler())
-                .setCaseInsensitiveEnumValuesAllowed(true);
+        ServiceFactory services = new ServiceFactory();
+        CommandLine cmd = commandLine(services);
+        Main root = cmd.getCommand();
 
         if (args.length > 0 && !isHelpOrVersion(args[0]) && !contains(args, "--no-banner")) {
             root.printBanner();
         }
 
         int exitCode = cmd.execute(args);
-        maybeNotifyUpdate(args);
+        maybeNotifyUpdate(args, services.updateNotifier());
         System.exit(exitCode);
+    }
+
+    /** The fully wired command line: each command gets its services from {@code services}. */
+    public static CommandLine commandLine(ServiceFactory services) {
+        return configure(new CommandLine(new Main(), new CommandFactory(services)));
+    }
+
+    /** Applies springcli's error handling and parsing options to {@code cmd} and its subcommands. */
+    public static CommandLine configure(CommandLine cmd) {
+        return cmd.setExecutionExceptionHandler(new FriendlyExceptionHandler())
+                .setCaseInsensitiveEnumValuesAllowed(true);
     }
 
     /**
@@ -97,7 +107,7 @@ public class Main implements Runnable {
      * update/completion/version commands themselves, and when SPRINGCLI_NO_UPDATE_CHECK is set. The
      * underlying check is throttled and time-bounded, so this never meaningfully delays a command.
      */
-    private static void maybeNotifyUpdate(String[] args) {
+    private static void maybeNotifyUpdate(String[] args, UpdateNotifier notifier) {
         if (System.getenv("SPRINGCLI_NO_UPDATE_CHECK") != null || System.console() == null) {
             return;
         }
@@ -106,14 +116,7 @@ public class Main implements Runnable {
                 || command.equals("completion") || command.equals("version")) {
             return;
         }
-        try {
-            UpdateService service = new UpdateService(VersionCommand.VERSION);
-            java.nio.file.Path cache = java.nio.file.Path.of(
-                    System.getProperty("user.home"), ".springcli", "update-check.json");
-            new UpdateNotifier(service, cache, java.time.Duration.ofHours(24)).maybeNotify(System.err);
-        } catch (Exception ignored) {
-            // never fail a command over an update notice
-        }
+        notifier.maybeNotify(System.err);
     }
 
     private static String firstNonOption(String[] args) {
@@ -153,9 +156,9 @@ public class Main implements Runnable {
     static class FriendlyExceptionHandler implements CommandLine.IExecutionExceptionHandler {
         @Override
         public int handleExecutionException(Exception ex, CommandLine cmd, CommandLine.ParseResult parseResult) {
-            if (ex instanceof SpringCliException) {
-                Ansi.error(ex.getMessage());
-                return 1;
+            if (ex instanceof SpringCliException e) {
+                Ansi.error(e.getMessage());
+                return e.exitCode();
             }
             Ansi.error("Unexpected error: " + ex.getMessage());
             if (System.getenv("SPRINGCLI_DEBUG") != null) {
@@ -170,7 +173,7 @@ public class Main implements Runnable {
     static class VersionProvider implements CommandLine.IVersionProvider {
         @Override
         public String[] getVersion() {
-            return new String[]{"springcli " + VersionCommand.VERSION};
+            return new String[]{"springcli " + BuildInfo.VERSION};
         }
     }
 }

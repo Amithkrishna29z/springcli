@@ -30,15 +30,12 @@ public class DoctorCommand implements Callable<Integer> {
 
     private boolean check(String label, String... command) {
         try {
-            Process p = new ProcessBuilder(ProcessUtils.platformCommand(command))
-                    .redirectErrorStream(true).start();
-            String output = new String(p.getInputStream().readAllBytes()).lines().findFirst().orElse("");
-            int exit = p.waitFor();
-            if (exit == 0) {
-                Ansi.success(label + ": " + output.trim());
+            ProcessUtils.Result result = ProcessUtils.runCapturing(command);
+            if (result.exitCode() == 0) {
+                Ansi.success(label + ": " + result.output().lines().findFirst().orElse("").trim());
                 return true;
             }
-            Ansi.warn(label + ": found but exited with code " + exit);
+            Ansi.warn(label + ": found but exited with code " + result.exitCode());
             return false;
         } catch (IOException e) {
             Ansi.error(label + ": not found on PATH");

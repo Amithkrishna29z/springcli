@@ -1,6 +1,7 @@
 package commands;
 
 import org.junit.jupiter.api.Test;
+import service.Installer;
 import service.UpdateService;
 
 import java.io.ByteArrayOutputStream;
@@ -36,7 +37,7 @@ class UpdateCommandTest {
         System.setOut(new PrintStream(buf, true, StandardCharsets.UTF_8));
         int code;
         try {
-            code = new UpdateCommand(svc).call();
+            code = new UpdateCommand(svc, Installer.forCurrentOs()).call();
         } finally {
             System.setOut(original);
         }

@@ -1,13 +1,11 @@
 package commands;
 
 import service.PomEditor;
+import service.PomFile;
 import util.Ansi;
 import picocli.CommandLine.Command;
-import picocli.CommandLine.Option;
+import picocli.CommandLine.Mixin;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.Callable;
 
@@ -19,34 +17,22 @@ import java.util.concurrent.Callable;
 @Command(name = "deps", description = "List the dependencies declared in an existing project's pom.xml.")
 public class DepsCommand implements Callable<Integer> {
 
-    @Option(names = {"-f", "--file"}, paramLabel = "<pom>",
-            description = "Path to the pom.xml to read (default: ./pom.xml).")
-    private Path pomFile;
+    @Mixin
+    private PomFileOption pomFileOption;
 
     private final PomEditor pomEditor = new PomEditor();
 
     @Override
-    public Integer call() throws IOException {
-        Path pom = pomFile != null ? pomFile : Path.of("pom.xml");
-        if (!Files.isRegularFile(pom)) {
-            if (pomFile == null && Files.isRegularFile(Path.of("build.gradle"))) {
-                Ansi.error("Found build.gradle but 'deps' supports Maven (pom.xml) only for now.");
-                return 2;
-            }
-            Ansi.error("No pom.xml found at " + pom.toAbsolutePath()
-                    + ". Run inside a Maven project or pass --file <pom>.");
-            return 2;
-        }
-
-        String pomXml = Files.readString(pom);
-        String bootVersion = pomEditor.springBootParentVersion(pomXml);
+    public Integer call() {
+        PomFile pom = pomFileOption.load();
+        String bootVersion = pomEditor.springBootParentVersion(pom.xml());
         if (bootVersion != null) {
             System.out.println(Ansi.bold("Spring Boot " + bootVersion));
         }
 
-        List<PomEditor.Dep> deps = pomEditor.dependencies(pomXml);
+        List<PomEditor.Dep> deps = pomEditor.dependencies(pom.xml());
         if (deps.isEmpty()) {
-            Ansi.warn("No dependencies declared in " + pom.getFileName() + ".");
+            Ansi.warn("No dependencies declared in " + pom.fileName() + ".");
             return 0;
         }
 

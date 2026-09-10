@@ -1,6 +1,5 @@
 package commands;
 
-import cli.ServiceFactory;
 import model.Metadata;
 import service.MetadataService;
 import util.Ansi;
@@ -17,10 +16,6 @@ public class SearchCommand implements Callable<Integer> {
     private String term;
 
     private final MetadataService metadataService;
-
-    public SearchCommand() {
-        this(new ServiceFactory().metadataService());
-    }
 
     public SearchCommand(MetadataService metadataService) {
         this.metadataService = metadataService;

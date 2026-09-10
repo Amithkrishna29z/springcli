@@ -1,6 +1,7 @@
 package commands;
 
 import cli.Main;
+import cli.ServiceFactory;
 import org.junit.jupiter.api.Test;
 import picocli.CommandLine;
 import picocli.CommandLine.Model.CommandSpec;
@@ -14,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class CommandParsingTest {
 
     private CommandLine root() {
-        return new CommandLine(new Main());
+        return Main.commandLine(new ServiceFactory());
     }
 
     @Test

@@ -1,46 +1,84 @@
 package cli;
 
+import config.BuildInfo;
 import service.ArchitectureScaffolder;
+import service.ConfigService;
+import service.DependencyResolver;
+import service.HttpSupport;
 import service.InitializrClient;
 import service.MetadataCache;
 import service.MetadataService;
 import service.ProjectGenerator;
+import service.UpdateNotifier;
+import service.UpdateService;
+import service.VulnerabilityService;
 import service.ZipExtractor;
 
+import java.net.http.HttpClient;
 import java.nio.file.Path;
 import java.time.Duration;
 
+/**
+ * Composition root: builds every service once, wired together and sharing one {@link HttpClient},
+ * and is the only place that reads the environment-driven settings (Initializr URL, cache opt-out,
+ * the {@code ~/.springcli} directory). {@link CommandFactory} hands these instances to commands.
+ */
 public class ServiceFactory {
 
-    private final InitializrClient initializrClient;
     private final MetadataService metadataService;
     private final ProjectGenerator projectGenerator;
+    private final DependencyResolver dependencyResolver;
+    private final ConfigService configService;
+    private final VulnerabilityService vulnerabilityService;
+    private final UpdateService updateService;
+    private final UpdateNotifier updateNotifier;
 
     public ServiceFactory() {
+        Path home = Path.of(System.getProperty("user.home"), ".springcli");
+        HttpClient http = HttpSupport.newClient();
+
         String baseUrl = System.getenv().getOrDefault("SPRINGCLI_BASE_URL", InitializrClient.DEFAULT_BASE_URL);
-        this.initializrClient = new InitializrClient(
-                java.net.http.HttpClient.newBuilder()
-                        .connectTimeout(java.time.Duration.ofSeconds(15))
-                        .build(),
-                baseUrl);
+        InitializrClient initializrClient = new InitializrClient(http, baseUrl);
         MetadataCache cache = System.getenv("SPRINGCLI_NO_CACHE") != null
                 ? MetadataCache.disabled()
-                : MetadataCache.onDisk(
-                        Path.of(System.getProperty("user.home"), ".springcli", "metadata-cache.json"),
-                        Duration.ofHours(24));
+                : MetadataCache.onDisk(home.resolve("metadata-cache.json"), Duration.ofHours(24));
+
         this.metadataService = new MetadataService(initializrClient, cache);
         this.projectGenerator = new ProjectGenerator(initializrClient, new ZipExtractor(), new ArchitectureScaffolder());
+        this.dependencyResolver = new DependencyResolver(metadataService, initializrClient);
+        this.configService = new ConfigService(home.resolve("config.json"));
+        this.vulnerabilityService = new VulnerabilityService(http, VulnerabilityService.DEFAULT_API);
+        this.updateService = new UpdateService(
+                http, UpdateService.DEFAULT_API, UpdateService.DEFAULT_REPO, BuildInfo.VERSION);
+        this.updateNotifier = new UpdateNotifier(
+                updateService, home.resolve("update-check.json"), Duration.ofHours(24));
     }
 
     public MetadataService metadataService() {
         return metadataService;
     }
 
-    public InitializrClient initializrClient() {
-        return initializrClient;
-    }
-
     public ProjectGenerator projectGenerator() {
         return projectGenerator;
+    }
+
+    public DependencyResolver dependencyResolver() {
+        return dependencyResolver;
+    }
+
+    public ConfigService configService() {
+        return configService;
+    }
+
+    public VulnerabilityService vulnerabilityService() {
+        return vulnerabilityService;
+    }
+
+    public UpdateService updateService() {
+        return updateService;
+    }
+
+    public UpdateNotifier updateNotifier() {
+        return updateNotifier;
     }
 }

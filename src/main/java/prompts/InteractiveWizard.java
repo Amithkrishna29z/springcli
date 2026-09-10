@@ -19,6 +19,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
+import static util.Strings.firstNonBlank;
+
 public class InteractiveWizard {
 
     private final MetadataService metadataService;
@@ -113,15 +115,6 @@ public class InteractiveWizard {
     /** @return the config value if it is a valid option for {@code field}, else the metadata default. */
     private static String effectiveDefault(Metadata.SingleSelect field, String configValue) {
         return (configValue != null && field.isValid(configValue)) ? configValue : field.defaultValue();
-    }
-
-    private static String firstNonBlank(String... values) {
-        for (String v : values) {
-            if (v != null && !v.isBlank()) {
-                return v;
-            }
-        }
-        return null;
     }
 
     private String choose(String label, Metadata.SingleSelect field, String defaultId) {

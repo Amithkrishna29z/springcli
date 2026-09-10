@@ -1,5 +1,6 @@
 package commands;
 
+import service.Installer;
 import service.UpdateService;
 import util.Ansi;
 import picocli.CommandLine.Command;
@@ -16,13 +17,11 @@ import java.util.concurrent.Callable;
 public class ModifyCommand implements Callable<Integer> {
 
     private final UpdateService updateService;
+    private final Installer installer;
 
-    public ModifyCommand() {
-        this(new UpdateService(VersionCommand.VERSION));
-    }
-
-    public ModifyCommand(UpdateService updateService) {
+    public ModifyCommand(UpdateService updateService, Installer installer) {
         this.updateService = updateService;
+        this.installer = installer;
     }
 
     @Override
@@ -33,7 +32,7 @@ public class ModifyCommand implements Callable<Integer> {
         System.out.println();
 
         // The only management action is "update to latest" — reuse the update command's flow.
-        return new UpdateCommand(updateService).call();
+        return new UpdateCommand(updateService, installer).call();
     }
 
     /** @return the executable that launched this process (the springcli launcher or java), if known. */

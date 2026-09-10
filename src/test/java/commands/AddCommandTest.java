@@ -1,8 +1,10 @@
 package commands;
 
+import cli.Main;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import picocli.CommandLine;
+import service.DependencyResolver;
 import service.InitializrClient;
 import service.MetadataService;
 import support.SampleMetadata;
@@ -58,11 +60,11 @@ class AddCommandTest {
     private AddCommand command(String referencePom) {
         InitializrClient client = mock(InitializrClient.class);
         when(client.fetchPom(any())).thenReturn(referencePom);
-        return new AddCommand(SampleMetadata.service(), client);
+        return new AddCommand(new DependencyResolver(SampleMetadata.service(), client));
     }
 
     private int run(AddCommand cmd, String... args) {
-        return new CommandLine(cmd).execute(args);
+        return Main.configure(new CommandLine(cmd)).execute(args);
     }
 
     @Test

@@ -2,15 +2,13 @@ package commands;
 
 import exception.NetworkException;
 import service.PomEditor;
+import service.PomFile;
 import service.VulnerabilityService;
 import service.VulnerabilityService.Vuln;
 import util.Ansi;
 import picocli.CommandLine.Command;
-import picocli.CommandLine.Option;
+import picocli.CommandLine.Mixin;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.Callable;
 
@@ -26,40 +24,25 @@ import java.util.concurrent.Callable;
         description = "Check pinned dependency versions against the OSV vulnerability database.")
 public class AuditCommand implements Callable<Integer> {
 
-    @Option(names = {"-f", "--file"}, paramLabel = "<pom>",
-            description = "Path to the pom.xml to audit (default: ./pom.xml).")
-    private Path pomFile;
+    @Mixin
+    private PomFileOption pomFileOption;
 
     private final VulnerabilityService vulnerabilityService;
     private final PomEditor pomEditor = new PomEditor();
-
-    public AuditCommand() {
-        this(new VulnerabilityService());
-    }
 
     public AuditCommand(VulnerabilityService vulnerabilityService) {
         this.vulnerabilityService = vulnerabilityService;
     }
 
     @Override
-    public Integer call() throws IOException {
-        Path pom = pomFile != null ? pomFile : Path.of("pom.xml");
-        if (!Files.isRegularFile(pom)) {
-            if (pomFile == null && Files.isRegularFile(Path.of("build.gradle"))) {
-                Ansi.error("Found build.gradle but 'audit' supports Maven (pom.xml) only for now.");
-                return 2;
-            }
-            Ansi.error("No pom.xml found at " + pom.toAbsolutePath()
-                    + ". Run inside a Maven project or pass --file <pom>.");
-            return 2;
-        }
-
-        List<PomEditor.Dep> versioned = pomEditor.dependencies(Files.readString(pom)).stream()
+    public Integer call() {
+        PomFile pom = pomFileOption.load();
+        List<PomEditor.Dep> versioned = pomEditor.dependencies(pom.xml()).stream()
                 .filter(d -> d.version() != null && !d.version().isBlank())
                 .toList();
 
         if (versioned.isEmpty()) {
-            Ansi.warn("No pinned dependency versions to audit in " + pom.getFileName() + ".");
+            Ansi.warn("No pinned dependency versions to audit in " + pom.fileName() + ".");
             System.out.println("Spring-managed dependencies have no explicit <version>; run "
                     + Ansi.cyan("springcli outdated") + " to check your Spring Boot version instead.");
             return 0;

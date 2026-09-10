@@ -38,10 +38,6 @@ public class ConfigCommand implements Callable<Integer> {
 
     private final ConfigService configService;
 
-    public ConfigCommand() {
-        this(new ConfigService());
-    }
-
     public ConfigCommand(ConfigService configService) {
         this.configService = configService;
     }

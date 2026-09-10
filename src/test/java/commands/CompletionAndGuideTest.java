@@ -1,8 +1,8 @@
 package commands;
 
 import cli.Main;
+import cli.ServiceFactory;
 import org.junit.jupiter.api.Test;
-import picocli.CommandLine;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
@@ -18,7 +18,7 @@ class CompletionAndGuideTest {
         ByteArrayOutputStream buf = new ByteArrayOutputStream();
         System.setOut(new PrintStream(buf, true, StandardCharsets.UTF_8));
         try {
-            assertEquals(0, new CommandLine(new Main()).execute(args));
+            assertEquals(0, Main.commandLine(new ServiceFactory()).execute(args));
         } finally {
             System.setOut(original);
         }
