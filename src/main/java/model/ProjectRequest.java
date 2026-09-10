@@ -16,6 +16,7 @@ public final class ProjectRequest {
     private final String packaging;
     private final String javaVersion;
     private final List<String> dependencies;
+    private final Architecture architecture;
 
     private ProjectRequest(Builder b) {
         this.type = b.type;
@@ -29,6 +30,7 @@ public final class ProjectRequest {
         this.packaging = b.packaging;
         this.javaVersion = b.javaVersion;
         this.dependencies = List.copyOf(b.dependencies);
+        this.architecture = b.architecture;
     }
 
     public String type() { return type; }
@@ -42,6 +44,7 @@ public final class ProjectRequest {
     public String packaging() { return packaging; }
     public String javaVersion() { return javaVersion; }
     public List<String> dependencies() { return dependencies; }
+    public Architecture architecture() { return architecture; }
 
     public static Builder builder() {
         return new Builder();
@@ -59,6 +62,7 @@ public final class ProjectRequest {
         private String packaging = "jar";
         private String javaVersion = "21";
         private List<String> dependencies = List.of();
+        private Architecture architecture = Architecture.NONE;
 
         public Builder type(String v) { this.type = v; return this; }
         public Builder language(String v) { this.language = v; return this; }
@@ -71,6 +75,7 @@ public final class ProjectRequest {
         public Builder packaging(String v) { this.packaging = v; return this; }
         public Builder javaVersion(String v) { this.javaVersion = v; return this; }
         public Builder dependencies(List<String> v) { this.dependencies = v == null ? List.of() : v; return this; }
+        public Builder architecture(Architecture v) { this.architecture = v == null ? Architecture.NONE : v; return this; }
 
         public ProjectRequest build() {
             Objects.requireNonNull(bootVersion, "bootVersion must be set");
