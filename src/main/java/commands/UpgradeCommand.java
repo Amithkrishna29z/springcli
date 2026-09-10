@@ -1,18 +1,15 @@
 package commands;
 
-import cli.ServiceFactory;
+import exception.UsageException;
 import service.MetadataService;
 import service.PomEditor;
-import service.UpdateService;
+import service.PomFile;
 import util.Ansi;
+import util.Versions;
 import picocli.CommandLine.Command;
+import picocli.CommandLine.Mixin;
 import picocli.CommandLine.Option;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.concurrent.Callable;
 
 /**
@@ -26,9 +23,8 @@ import java.util.concurrent.Callable;
         description = "Upgrade the Spring Boot <parent> version in your pom.xml (default: latest).")
 public class UpgradeCommand implements Callable<Integer> {
 
-    @Option(names = {"-f", "--file"}, paramLabel = "<pom>",
-            description = "Path to the pom.xml to edit (default: ./pom.xml).")
-    private Path pomFile;
+    @Mixin
+    private PomFileOption pomFileOption;
 
     @Option(names = "--to", paramLabel = "<version>",
             description = "Upgrade to a specific Spring Boot version (default: the latest release).")
@@ -40,33 +36,17 @@ public class UpgradeCommand implements Callable<Integer> {
     private final MetadataService metadataService;
     private final PomEditor pomEditor = new PomEditor();
 
-    public UpgradeCommand() {
-        this(new ServiceFactory().metadataService());
-    }
-
     public UpgradeCommand(MetadataService metadataService) {
         this.metadataService = metadataService;
     }
 
     @Override
-    public Integer call() throws IOException {
-        Path pom = pomFile != null ? pomFile : Path.of("pom.xml");
-        if (!Files.isRegularFile(pom)) {
-            if (pomFile == null && Files.isRegularFile(Path.of("build.gradle"))) {
-                Ansi.error("Found build.gradle but 'upgrade' supports Maven (pom.xml) only for now.");
-                return 2;
-            }
-            Ansi.error("No pom.xml found at " + pom.toAbsolutePath()
-                    + ". Run inside a Maven project or pass --file <pom>.");
-            return 2;
-        }
-
-        String pomXml = Files.readString(pom);
-        String current = pomEditor.springBootParentVersion(pomXml);
+    public Integer call() {
+        PomFile pom = pomFileOption.load();
+        String current = pomEditor.springBootParentVersion(pom.xml());
         if (current == null) {
-            Ansi.error("Couldn't find a Spring Boot <parent> version in " + pom.getFileName()
+            throw new UsageException("Couldn't find a Spring Boot <parent> version in " + pom.fileName()
                     + " — is this a Spring Boot Maven project?");
-            return 2;
         }
 
         String target;
@@ -84,35 +64,26 @@ public class UpgradeCommand implements Callable<Integer> {
         }
         // Without an explicit target, only ever move forward: a current version newer than the latest
         // release (e.g. a pre-release) isn't "outdated".
-        if (targetVersion == null && !UpdateService.isNewer(target, current)) {
+        if (targetVersion == null && !Versions.isNewer(target, current)) {
             Ansi.success("Spring Boot is up to date (" + current + ").");
             return 0;
         }
 
-        String updated = pomEditor.setSpringBootParentVersion(pomXml, target);
+        String updated = pomEditor.setSpringBootParentVersion(pom.xml(), target);
         if (updated == null) {
-            Ansi.error("Couldn't rewrite the <parent> version in " + pom.getFileName() + ".");
-            return 2;
+            throw new UsageException("Couldn't rewrite the <parent> version in " + pom.fileName() + ".");
         }
 
         if (dryRun) {
             System.out.println("\nWould change Spring Boot " + Ansi.yellow(current) + " → "
-                    + Ansi.green(target) + " in " + pom + ".");
+                    + Ansi.green(target) + " in " + pom.path() + ".");
             return 0;
         }
 
-        writeString(pom, updated);
-        Ansi.success("Upgraded Spring Boot " + current + " → " + target + " in " + pom.getFileName() + ".");
+        pom.write(updated);
+        Ansi.success("Upgraded Spring Boot " + current + " → " + target + " in " + pom.fileName() + ".");
         System.out.println("Rebuild to pick up the managed dependency versions (e.g. "
                 + Ansi.cyan("./mvnw clean install") + ").");
         return 0;
-    }
-
-    private static void writeString(Path path, String content) {
-        try {
-            Files.writeString(path, content, StandardCharsets.UTF_8);
-        } catch (IOException e) {
-            throw new UncheckedIOException("Could not write " + path, e);
-        }
     }
 }

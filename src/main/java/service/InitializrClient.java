@@ -1,50 +1,32 @@
 package service;
 
-import exception.NetworkException;
 import model.ProjectRequest;
 
-import java.io.IOException;
-import java.net.URI;
 import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 import java.util.StringJoiner;
 
 public class InitializrClient {
 
     public static final String DEFAULT_BASE_URL = "https://start.spring.io";
 
-    private static final String USER_AGENT = "springcli/1.0.0";
-    private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(30);
-
     private final HttpClient httpClient;
     private final String baseUrl;
 
-    public InitializrClient() {
-        this(HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(15)).build(), DEFAULT_BASE_URL);
-    }
-
     public InitializrClient(HttpClient httpClient, String baseUrl) {
         this.httpClient = httpClient;
-        this.baseUrl = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
+        this.baseUrl = HttpSupport.stripTrailingSlash(baseUrl);
     }
 
     public String fetchMetadata() {
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(baseUrl + "/metadata/client"))
-                .header("User-Agent", USER_AGENT)
-
+        HttpRequest request = HttpSupport.request(baseUrl + "/metadata/client")
                 .header("Accept", "application/vnd.initializr.v2.2+json")
-                .timeout(REQUEST_TIMEOUT)
                 .GET()
                 .build();
-
-        HttpResponse<String> response = send(request, HttpResponse.BodyHandlers.ofString());
-        ensureSuccess(response.statusCode(), "fetch metadata");
-        return response.body();
+        return send(request, HttpResponse.BodyHandlers.ofString(), "fetch metadata");
     }
 
     /**
@@ -52,29 +34,12 @@ public class InitializrClient {
      * coordinates (groupId/artifactId/scope) of dependencies, which the client metadata omits.
      */
     public String fetchPom(ProjectRequest request) {
-        HttpRequest httpRequest = HttpRequest.newBuilder()
-                .uri(URI.create(baseUrl + "/pom.xml?" + toQuery(request)))
-                .header("User-Agent", USER_AGENT)
-                .timeout(REQUEST_TIMEOUT)
-                .GET()
-                .build();
-
-        HttpResponse<String> response = send(httpRequest, HttpResponse.BodyHandlers.ofString());
-        ensureSuccess(response.statusCode(), "fetch pom.xml");
-        return response.body();
+        return send(get("/pom.xml?" + toQuery(request)), HttpResponse.BodyHandlers.ofString(), "fetch pom.xml");
     }
 
     public byte[] downloadStarter(ProjectRequest request) {
-        HttpRequest httpRequest = HttpRequest.newBuilder()
-                .uri(URI.create(baseUrl + "/starter.zip?" + toQuery(request)))
-                .header("User-Agent", USER_AGENT)
-                .timeout(REQUEST_TIMEOUT)
-                .GET()
-                .build();
-
-        HttpResponse<byte[]> response = send(httpRequest, HttpResponse.BodyHandlers.ofByteArray());
-        ensureSuccess(response.statusCode(), "download starter");
-        return response.body();
+        return send(get("/starter.zip?" + toQuery(request)), HttpResponse.BodyHandlers.ofByteArray(),
+                "download starter");
     }
 
     String toQuery(ProjectRequest r) {
@@ -99,23 +64,11 @@ public class InitializrClient {
         return key + "=" + URLEncoder.encode(value == null ? "" : value, StandardCharsets.UTF_8);
     }
 
-    private <T> HttpResponse<T> send(HttpRequest request, HttpResponse.BodyHandler<T> handler) {
-        try {
-            return httpClient.send(request, handler);
-        } catch (IOException e) {
-            throw new NetworkException(
-                    "Could not reach Spring Initializr at " + baseUrl
-                            + ". Check your internet connection and try again.", e);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new NetworkException("Request interrupted while contacting Spring Initializr.", e);
-        }
+    private HttpRequest get(String path) {
+        return HttpSupport.request(baseUrl + path).GET().build();
     }
 
-    private static void ensureSuccess(int status, String action) {
-        if (status < 200 || status >= 300) {
-            throw new NetworkException(
-                    "Spring Initializr returned HTTP " + status + " while trying to " + action + ".");
-        }
+    private <T> T send(HttpRequest request, HttpResponse.BodyHandler<T> handler, String action) {
+        return HttpSupport.send(httpClient, request, handler, "Spring Initializr at " + baseUrl, action).body();
     }
 }

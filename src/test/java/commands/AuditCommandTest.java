@@ -1,5 +1,6 @@
 package commands;
 
+import cli.Main;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import picocli.CommandLine;
@@ -53,7 +54,7 @@ class AuditCommandTest {
         PrintStream original = System.out;
         System.setOut(new PrintStream(buf, true, StandardCharsets.UTF_8));
         try {
-            code[0] = new CommandLine(cmd).execute(args);
+            code[0] = Main.configure(new CommandLine(cmd)).execute(args);
         } finally {
             System.setOut(original);
         }

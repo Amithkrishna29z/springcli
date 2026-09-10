@@ -2,8 +2,8 @@ package model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import util.Strings;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -72,7 +72,7 @@ public final class UserConfig {
             case "language" -> language = value;
             case "packaging" -> packaging = value;
             case "type" -> type = value;
-            case "dependencies" -> dependencies = splitCsv(value);
+            case "dependencies" -> dependencies = value == null ? null : Strings.splitCsv(value);
             default -> throw new IllegalArgumentException("Unknown key: " + key);
         }
     }
@@ -80,19 +80,5 @@ public final class UserConfig {
     /** Clears {@code key}. */
     public void unset(String key) {
         set(key, null);
-    }
-
-    private static List<String> splitCsv(String value) {
-        if (value == null) {
-            return null;
-        }
-        List<String> out = new ArrayList<>();
-        for (String token : value.split(",")) {
-            String s = token.trim();
-            if (!s.isEmpty()) {
-                out.add(s);
-            }
-        }
-        return out;
     }
 }

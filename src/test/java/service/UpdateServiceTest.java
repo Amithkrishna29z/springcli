@@ -8,37 +8,13 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class UpdateServiceTest {
-
-    @Test
-    void isNewerComparesSemanticVersions() {
-        assertTrue(UpdateService.isNewer("1.2.0", "1.1.0"));
-        assertTrue(UpdateService.isNewer("1.1.1", "1.1.0"));
-        assertTrue(UpdateService.isNewer("2.0.0", "1.9.9"));
-        assertFalse(UpdateService.isNewer("1.1.0", "1.1.0"));
-        assertFalse(UpdateService.isNewer("1.0.0", "1.1.0"));
-    }
-
-    @Test
-    void isNewerHandlesVPrefixAndUnevenLengths() {
-        assertTrue(UpdateService.isNewer("v1.2", "1.1.9"));
-        assertFalse(UpdateService.isNewer("1.2", "1.2.0"));
-        assertTrue(UpdateService.isNewer("1.2.1", "v1.2"));
-    }
-
-    @Test
-    void isNewerIgnoresPreReleaseSuffix() {
-        assertTrue(UpdateService.isNewer("1.3.0-rc1", "1.2.0"));
-        assertFalse(UpdateService.isNewer("1.2.0-rc1", "1.2.0"));
-    }
 
     @SuppressWarnings("unchecked")
     @Test
@@ -80,7 +56,8 @@ class UpdateServiceTest {
 
     @Test
     void currentVersionStripsVPrefix() {
-        assertEquals("1.1.0", new UpdateService("v1.1.0").currentVersion());
+        UpdateService svc = new UpdateService(mock(HttpClient.class), "https://api.github.com", "owner/repo", "v1.1.0");
+        assertEquals("1.1.0", svc.currentVersion());
     }
 
     @Test

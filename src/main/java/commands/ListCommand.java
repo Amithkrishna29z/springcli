@@ -1,6 +1,5 @@
 package commands;
 
-import cli.ServiceFactory;
 import model.Metadata;
 import service.MetadataService;
 import util.Ansi;
@@ -12,10 +11,6 @@ import java.util.concurrent.Callable;
 public class ListCommand implements Callable<Integer> {
 
     private final MetadataService metadataService;
-
-    public ListCommand() {
-        this(new ServiceFactory().metadataService());
-    }
 
     public ListCommand(MetadataService metadataService) {
         this.metadataService = metadataService;

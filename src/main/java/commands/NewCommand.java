@@ -1,6 +1,5 @@
 package commands;
 
-import cli.ServiceFactory;
 import config.Defaults;
 import exception.SpringCliException;
 import model.Architecture;
@@ -20,6 +19,8 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.Callable;
+
+import static util.Strings.firstNonBlank;
 
 @Command(name = "new", description = "Create a new Spring Boot project (interactive by default).")
 public class NewCommand implements Callable<Integer> {
@@ -84,13 +85,6 @@ public class NewCommand implements Callable<Integer> {
     private final ConfigService configService;
 
     private UserConfig config;
-
-    public NewCommand() {
-        ServiceFactory factory = new ServiceFactory();
-        this.metadataService = factory.metadataService();
-        this.projectGenerator = factory.projectGenerator();
-        this.configService = new ConfigService();
-    }
 
     public NewCommand(MetadataService metadataService, ProjectGenerator projectGenerator, ConfigService configService) {
         this.metadataService = metadataService;
@@ -172,16 +166,6 @@ public class NewCommand implements Callable<Integer> {
         return Defaults.DEPENDENCIES;
     }
 
-    /** @return the first argument that is non-null and non-blank. */
-    private static String firstNonBlank(String... values) {
-        for (String v : values) {
-            if (v != null && !v.isBlank()) {
-                return v;
-            }
-        }
-        return null;
-    }
-
     private void runPostActions(Path targetDir, ProjectRequest request) {
         if (initGit) {
             runProcess(targetDir, "Initializing git repository...", "git", "init", "-q");
@@ -201,11 +185,7 @@ public class NewCommand implements Callable<Integer> {
     private void runProcess(Path workingDir, String message, String... command) {
         Ansi.info(message);
         try {
-            Process process = new ProcessBuilder(ProcessUtils.platformCommand(command))
-                    .directory(workingDir.toFile())
-                    .inheritIO()
-                    .start();
-            int exit = process.waitFor();
+            int exit = ProcessUtils.runInteractive(workingDir, command);
             if (exit != 0) {
                 Ansi.warn("Command '" + String.join(" ", command) + "' exited with code " + exit + ".");
             }

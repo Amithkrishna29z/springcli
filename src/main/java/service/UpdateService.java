@@ -2,21 +2,23 @@ package service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import config.BuildInfo;
 import exception.NetworkException;
+import exception.SpringCliException;
+import util.Versions;
 
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 /**
- * Checks the project's GitHub Releases for a newer version than the one running. Only performs the
- * read-only "is there a newer release?" query; downloading/launching the installer is handled by the
- * command layer. The {@link HttpClient}, API base URL and repo are injectable for testing.
+ * Checks the project's GitHub Releases for a newer version than the one running, and downloads
+ * release installers. Running a downloaded installer is left to an {@link Installer}. The
+ * {@link HttpClient}, API base URL and repo are injectable for testing.
  */
 public class UpdateService {
 
@@ -29,21 +31,16 @@ public class UpdateService {
     private final String currentVersion;
     private final ObjectMapper mapper = new ObjectMapper();
 
-    public UpdateService(String currentVersion) {
-        this(HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(15)).build(),
-                DEFAULT_API, DEFAULT_REPO, currentVersion);
-    }
-
     public UpdateService(HttpClient http, String apiBase, String repo, String currentVersion) {
         this.http = http;
-        this.apiBase = apiBase.endsWith("/") ? apiBase.substring(0, apiBase.length() - 1) : apiBase;
+        this.apiBase = HttpSupport.stripTrailingSlash(apiBase);
         this.repo = repo;
         this.currentVersion = currentVersion;
     }
 
     /** @return the running version, without any leading {@code v}. */
     public String currentVersion() {
-        return normalize(currentVersion);
+        return Versions.normalize(currentVersion);
     }
 
     /**
@@ -51,32 +48,18 @@ public class UpdateService {
      * @throws NetworkException if GitHub cannot be reached or returns unexpected data
      */
     public String latestVersion() {
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(apiBase + "/repos/" + repo + "/releases/latest"))
+        HttpRequest request = HttpSupport.request(apiBase + "/repos/" + repo + "/releases/latest")
                 .header("Accept", "application/vnd.github+json")
-                .header("User-Agent", "springcli/" + currentVersion)
-                .timeout(Duration.ofSeconds(30))
                 .GET()
                 .build();
-
-        HttpResponse<String> response;
-        try {
-            response = http.send(request, HttpResponse.BodyHandlers.ofString());
-        } catch (IOException e) {
-            throw new NetworkException("Could not check for updates (network error).", e);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new NetworkException("Update check was interrupted.", e);
-        }
-        if (response.statusCode() < 200 || response.statusCode() >= 300) {
-            throw new NetworkException("GitHub returned HTTP " + response.statusCode() + " while checking for updates.");
-        }
+        HttpResponse<String> response = HttpSupport.send(http, request, HttpResponse.BodyHandlers.ofString(),
+                "GitHub", "check for updates");
         try {
             JsonNode tag = mapper.readTree(response.body()).path("tag_name");
             if (tag.isMissingNode() || tag.asText("").isBlank()) {
                 throw new NetworkException("No release information found for " + repo + ".");
             }
-            return normalize(tag.asText());
+            return Versions.normalize(tag.asText());
         } catch (IOException e) {
             throw new NetworkException("Received malformed release data from GitHub.", e);
         }
@@ -90,46 +73,31 @@ public class UpdateService {
         return "https://github.com/" + repo + "/releases/latest/download/" + assetName;
     }
 
-    /** @return {@code true} if {@code candidate} is a strictly higher version than {@code current}. */
-    public static boolean isNewer(String candidate, String current) {
-        int[] a = parse(candidate);
-        int[] b = parse(current);
-        int n = Math.max(a.length, b.length);
-        for (int i = 0; i < n; i++) {
-            int x = i < a.length ? a[i] : 0;
-            int y = i < b.length ? b[i] : 0;
-            if (x != y) {
-                return x > y;
-            }
+    /**
+     * Downloads the latest release's {@code assetName} into a new temporary directory.
+     *
+     * @return the downloaded file
+     * @throws SpringCliException if the download fails
+     */
+    public Path downloadInstaller(String assetName) {
+        Path file;
+        try {
+            file = Files.createTempDirectory("springcli-update").resolve(assetName);
+        } catch (IOException e) {
+            throw new SpringCliException("Could not create a download directory: " + e.getMessage(), e);
         }
-        return false;
-    }
-
-    static String normalize(String v) {
-        if (v == null) {
-            return "";
-        }
-        v = v.trim();
-        if (v.startsWith("v") || v.startsWith("V")) {
-            v = v.substring(1);
-        }
-        return v;
-    }
-
-    /** Parses the leading numeric dotted components (e.g. "1.2.0-rc1" -> [1,2,0]). */
-    private static int[] parse(String v) {
-        List<Integer> nums = new ArrayList<>();
-        for (String part : normalize(v).split("[.\\-+]")) {
-            try {
-                nums.add(Integer.parseInt(part));
-            } catch (NumberFormatException e) {
-                break;
-            }
-        }
-        int[] out = new int[nums.size()];
-        for (int i = 0; i < out.length; i++) {
-            out[i] = nums.get(i);
-        }
-        return out;
+        // Release downloads redirect to GitHub's CDN, which the shared API client doesn't follow.
+        HttpClient downloader = HttpClient.newBuilder()
+                .followRedirects(HttpClient.Redirect.NORMAL)
+                .connectTimeout(HttpSupport.CONNECT_TIMEOUT)
+                .build();
+        // No request timeout: an installer can take much longer to download than an API call.
+        HttpRequest request = HttpRequest.newBuilder(URI.create(downloadUrl(assetName)))
+                .header("User-Agent", BuildInfo.USER_AGENT)
+                .GET()
+                .build();
+        HttpSupport.send(downloader, request, HttpResponse.BodyHandlers.ofFile(file),
+                "GitHub", "download " + assetName);
+        return file;
     }
 }

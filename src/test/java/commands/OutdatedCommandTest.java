@@ -1,5 +1,6 @@
 package commands;
 
+import cli.Main;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import picocli.CommandLine;
@@ -37,7 +38,7 @@ class OutdatedCommandTest {
         System.setOut(new PrintStream(buf, true, StandardCharsets.UTF_8));
         try {
             OutdatedCommand cmd = new OutdatedCommand(SampleMetadata.service());
-            code[0] = new CommandLine(cmd).execute("--file", pom.toString());
+            code[0] = Main.configure(new CommandLine(cmd)).execute("--file", pom.toString());
         } finally {
             System.setOut(original);
         }

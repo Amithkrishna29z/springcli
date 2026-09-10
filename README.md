@@ -429,15 +429,21 @@ The code follows a clean, layered design with clear single responsibilities, mak
 independently unit-testable (HTTP is mocked in tests).
 
 ```
-cli/         Main (entry point + banner + global error handling), ServiceFactory (composition root)
-commands/    NewCommand, AddCommand, RemoveCommand, DepsCommand, OutdatedCommand, UpgradeCommand, AuditCommand, SearchCommand, ListCommand, VersionCommand, DoctorCommand  (Picocli)
-service/     InitializrClient (HTTP), MetadataService (parse/cache/search/validate),
+cli/         Main (entry point + banner + global error handling), ServiceFactory (composition root:
+             builds every service once), CommandFactory (picocli IFactory: injects services into commands)
+commands/    NewCommand, AddCommand, RemoveCommand, DepsCommand, OutdatedCommand, UpgradeCommand, AuditCommand,
+             SearchCommand, ListCommand, VersionCommand, DoctorCommand, …  (Picocli)
+             PomFileOption (shared -f/--file mixin for commands that work on an existing pom.xml)
+service/     InitializrClient, VulnerabilityService, UpdateService (HTTP, sharing HttpSupport),
+             MetadataService (parse/cache/search/validate), DependencyResolver (ids → Maven coordinates),
              ProjectGenerator (download→extract→cleanup), ZipExtractor (safe unzip),
-             PomEditor (read deps via DOM, inject via text splice)
+             PomEditor (read deps via DOM, inject via text splice), PomFile (read/write a pom),
+             Installer (per-OS self-update strategy: WindowsInstaller, UnixInstaller)
 prompts/     InteractiveWizard (guided prompts, dependency search & multi-select)
 model/       Metadata (Initializr client metadata), ProjectRequest (immutable, builder)
-util/        Ansi (colour output), FileUtils
-exception/   SpringCliException hierarchy (Network/Validation/Extraction)
+config/      Defaults, BuildInfo (version, filled in from pom.xml at build time)
+util/        Ansi (colour output), FileUtils, ProcessUtils, Strings, Versions
+exception/   SpringCliException hierarchy (Network/Validation/Extraction/Usage), each mapped to an exit code
 ```
 
 Key design decisions:
@@ -450,8 +456,12 @@ Key design decisions:
   (in a `finally` block), rolling back a partially-written target on failure.
 - **`ZipExtractor`** normalises and validates every entry path against the destination to prevent
   zip-slip path traversal.
+- **Commands receive their services through their constructors.** `CommandFactory` (a picocli
+  `IFactory`) injects them from `ServiceFactory`, which builds each service once per run around a
+  single shared `HttpClient`; tests pass mocks in the same way.
 - A **global `IExecutionExceptionHandler`** renders `SpringCliException`s as clean, coloured messages
-  and reserves stack traces for genuinely unexpected failures (`SPRINGCLI_DEBUG=1`).
+  with the exit code each exception type defines (e.g. `UsageException` → 2), and reserves stack
+  traces for genuinely unexpected failures (`SPRINGCLI_DEBUG=1`).
 
 ---
 

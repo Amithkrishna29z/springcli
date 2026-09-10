@@ -3,6 +3,7 @@ package service;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import util.Ansi;
+import util.Versions;
 
 import java.io.PrintStream;
 import java.nio.file.Files;
@@ -37,7 +38,7 @@ public class UpdateNotifier {
     public void maybeNotify(PrintStream out) {
         try {
             String latest = knownLatest();
-            if (latest != null && UpdateService.isNewer(latest, updateService.currentVersion())) {
+            if (latest != null && Versions.isNewer(latest, updateService.currentVersion())) {
                 out.println(Ansi.yellow("⬆ springcli " + latest + " is available "
                         + "(you have " + updateService.currentVersion() + ").")
                         + "  Run " + Ansi.cyan("springcli update") + " to upgrade.");
