@@ -57,6 +57,8 @@ override with `--deps` in non-interactive mode.
   declares, and check whether a newer Spring Boot version is available.
 - ⬆️ **Upgrade Spring Boot** (`upgrade`) — bump the `spring-boot-starter-parent` version in your
   `pom.xml` to the latest (or a pinned `--to`) release, in place.
+- ⬆️ **Update pinned libraries** (`upgrade --deps`) — move the dependencies you pin yourself (Lombok,
+  Guava, jjwt, …) to their latest stable release on Maven Central, flagging major version jumps.
 - 🛡️ **Vulnerability audit** (`audit`) — resolve every dependency your app really ships (via Maven)
   and check it against the free [OSV](https://osv.dev) database, then suggest the smallest Spring
   Boot upgrade that fixes the findings. `--fail-on`, JSON and SARIF output make it a CI gate.
@@ -294,6 +296,30 @@ springcli upgrade -f path/to/pom.xml
 Bumping the parent upgrades the whole managed dependency set at once, so rebuild afterwards (e.g.
 `./mvnw clean install`) to pick up the new versions. Same scope as the other pom editors: **Maven
 only**, and it needs the single generated `<parent>` block.
+
+### Update pinned libraries
+
+Starters get their versions from Spring Boot, but libraries you pin yourself — a `<version>` in the
+dependency, or a `${property}` defined in your pom — don't move when Boot does. `upgrade --deps` looks
+each one up on Maven Central and moves it to the latest stable release, in place:
+
+```bash
+springcli upgrade --deps                  # update every pinned dependency
+springcli upgrade --deps lombok guava     # only these (artifactId or groupId:artifactId)
+springcli upgrade --deps --dry-run        # show the changes without writing
+```
+
+```
+  org.projectlombok:lombok                1.18.30    → 1.18.38
+  ${jjwt.version} (jjwt-api, jjwt-impl)   0.11.5     → 0.12.6  (major)
+  com.google.guava:guava                  32.1.3-jre → 33.4.8-jre  (major)
+```
+
+Pre-releases (snapshots, milestones, RCs, alphas and betas) are skipped, and a version keeps its
+qualifier (Guava's `-jre` stays `-jre`). A property shared by several artifacts only moves to a
+release all of them have. Major jumps — or, below 1.0, minor ones — are flagged because they can
+break your build, so check their release notes. Artifacts that aren't on Maven Central (e.g. from a
+private repository) are skipped with a warning.
 
 ### Audit for vulnerabilities
 

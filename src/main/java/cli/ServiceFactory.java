@@ -6,8 +6,10 @@ import config.BuildInfo;
 import service.ArchitectureScaffolder;
 import service.ConfigService;
 import service.DependencyResolver;
+import service.DependencyUpgrader;
 import service.HttpSupport;
 import service.InitializrClient;
+import service.MavenCentralService;
 import service.MetadataCache;
 import service.MetadataService;
 import service.ProjectGenerator;
@@ -30,6 +32,7 @@ public class ServiceFactory {
     private final MetadataService metadataService;
     private final ProjectGenerator projectGenerator;
     private final DependencyResolver dependencyResolver;
+    private final DependencyUpgrader dependencyUpgrader;
     private final ConfigService configService;
     private final Auditor auditor;
     private final UpdateService updateService;
@@ -48,6 +51,7 @@ public class ServiceFactory {
         this.metadataService = new MetadataService(initializrClient, cache);
         this.projectGenerator = new ProjectGenerator(initializrClient, new ZipExtractor(), new ArchitectureScaffolder());
         this.dependencyResolver = new DependencyResolver(metadataService, initializrClient);
+        this.dependencyUpgrader = new DependencyUpgrader(new MavenCentralService(http, MavenCentralService.DEFAULT_REPO));
         this.configService = new ConfigService(home.resolve("config.json"));
         this.auditor = new Auditor(new MavenArtifactResolver(),
                 new VulnerabilityService(http, VulnerabilityService.DEFAULT_API), metadataService);
@@ -67,6 +71,10 @@ public class ServiceFactory {
 
     public DependencyResolver dependencyResolver() {
         return dependencyResolver;
+    }
+
+    public DependencyUpgrader dependencyUpgrader() {
+        return dependencyUpgrader;
     }
 
     public ConfigService configService() {

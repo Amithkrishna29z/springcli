@@ -45,6 +45,10 @@ public class PomEditor {
     private static final Pattern VERSION_TAG =
             Pattern.compile("<version>\\s*.*?\\s*</version>", Pattern.DOTALL);
 
+    /** A whole {@code <properties>…</properties>} element. */
+    private static final Pattern PROPERTIES_BLOCK =
+            Pattern.compile("<properties>[\\s\\S]*?</properties>");
+
     public record Dep(String groupId, String artifactId, String scope, boolean optional, String version) {
         public String key() {
             return groupId + ":" + artifactId;
@@ -116,6 +120,65 @@ public class PomEditor {
             return pomXml.substring(0, parent.start()) + newBlock + pomXml.substring(parent.end());
         }
         return null;
+    }
+
+    /**
+     * The value of project property {@code name} from the pom's top-level {@code <properties>}, or
+     * {@code null} if this pom doesn't define it (it may still be inherited from a parent).
+     */
+    public String property(String pomXml, String name) {
+        NodeList kids = parse(pomXml).getDocumentElement().getChildNodes();
+        for (int i = 0; i < kids.getLength(); i++) {
+            Node n = kids.item(i);
+            if (n.getNodeType() == Node.ELEMENT_NODE && n.getNodeName().equals("properties")) {
+                return childText((Element) n, name);
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Returns a copy of {@code pomXml} with property {@code name} in the first {@code <properties>}
+     * block set to {@code value}, leaving the rest of the file intact; {@code null} if there's no such
+     * property to rewrite.
+     */
+    public String setProperty(String pomXml, String name, String value) {
+        Matcher block = PROPERTIES_BLOCK.matcher(pomXml);
+        if (!block.find()) {
+            return null;
+        }
+        String tag = Pattern.quote(name);
+        Matcher property = Pattern.compile("(<" + tag + ">)[^<]*(</" + tag + ">)").matcher(block.group());
+        if (!property.find()) {
+            return null;
+        }
+        int start = block.start() + property.start();
+        int end = block.start() + property.end();
+        return pomXml.substring(0, start) + property.group(1) + value + property.group(2) + pomXml.substring(end);
+    }
+
+    /**
+     * Returns a copy of {@code pomXml} with the {@code <version>} of each {@code key} dependency declared
+     * at {@code oldVersion} changed to {@code newVersion}, leaving the rest of the file intact;
+     * {@code null} if there's no such dependency.
+     */
+    public String setDependencyVersion(String pomXml, String key, String oldVersion, String newVersion) {
+        Matcher m = DEPENDENCY_BLOCK.matcher(pomXml);
+        StringBuilder sb = new StringBuilder();
+        boolean changed = false;
+        while (m.find()) {
+            String block = m.group();
+            if (key.equals(keyOf(block)) && oldVersion.equals(firstTag(block, "version"))) {
+                Matcher version = VERSION_TAG.matcher(block);
+                version.find();
+                block = block.substring(0, version.start()) + "<version>" + newVersion + "</version>"
+                        + block.substring(version.end());
+                changed = true;
+            }
+            m.appendReplacement(sb, Matcher.quoteReplacement(block));
+        }
+        m.appendTail(sb);
+        return changed ? sb.toString() : null;
     }
 
     /** True when the pom has exactly one {@code <dependencies>} block and can be edited safely. */
