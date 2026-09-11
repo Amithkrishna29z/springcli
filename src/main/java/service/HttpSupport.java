@@ -12,7 +12,8 @@ import java.time.Duration;
 
 /**
  * HTTP plumbing shared by the API clients ({@link InitializrClient}, {@link VulnerabilityService},
- * {@link UpdateService}): one client configuration, one request template, and one place that turns
+ * {@link MavenCentralService}, {@link UpdateService}): one client configuration, one request
+ * template, and one place that turns
  * transport failures and non-2xx responses into {@link NetworkException}s.
  */
 public final class HttpSupport {
@@ -50,6 +51,20 @@ public final class HttpSupport {
      */
     static <T> HttpResponse<T> send(HttpClient http, HttpRequest request, HttpResponse.BodyHandler<T> handler,
                                     String service, String action) {
+        HttpResponse<T> response = sendAllowingNotFound(http, request, handler, service, action);
+        if (response.statusCode() == 404) {
+            throw badStatus(service, 404, action);
+        }
+        return response;
+    }
+
+    /**
+     * Like {@link #send}, but a 404 response is returned rather than thrown, for lookups where "not
+     * found" is an answer rather than a failure.
+     */
+    static <T> HttpResponse<T> sendAllowingNotFound(HttpClient http, HttpRequest request,
+                                                    HttpResponse.BodyHandler<T> handler,
+                                                    String service, String action) {
         HttpResponse<T> response;
         try {
             response = http.send(request, handler);
@@ -61,9 +76,13 @@ public final class HttpSupport {
             throw new NetworkException("Interrupted while trying to " + action + ".", e);
         }
         int status = response.statusCode();
-        if (status < 200 || status >= 300) {
-            throw new NetworkException(service + " returned HTTP " + status + " while trying to " + action + ".");
+        if ((status < 200 || status >= 300) && status != 404) {
+            throw badStatus(service, status, action);
         }
         return response;
+    }
+
+    private static NetworkException badStatus(String service, int status, String action) {
+        return new NetworkException(service + " returned HTTP " + status + " while trying to " + action + ".");
     }
 }

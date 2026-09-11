@@ -47,6 +47,41 @@ class PomEditorTest {
             </project>
             """;
 
+    private static final String PINNED_POM = """
+            <project xmlns="http://maven.apache.org/POM/4.0.0">
+                <properties>
+                    <jjwt.version>0.11.5</jjwt.version>
+                </properties>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.projectlombok</groupId>
+                        <artifactId>lombok</artifactId>
+                        <version>1.18.30</version>
+                    </dependency>
+                    <dependency>
+                        <groupId>io.jsonwebtoken</groupId>
+                        <artifactId>jjwt-api</artifactId>
+                        <version>${jjwt.version}</version>
+                    </dependency>
+                </dependencies>
+            </project>
+            """;
+
+    @Test
+    void setsADependencyVersionInPlace() {
+        String updated = editor.setDependencyVersion(PINNED_POM, "org.projectlombok:lombok", "1.18.30", "1.18.38");
+        assertEquals(PINNED_POM.replace("<version>1.18.30</version>", "<version>1.18.38</version>"), updated);
+        assertNull(editor.setDependencyVersion(PINNED_POM, "org.projectlombok:lombok", "1.0.0", "1.18.38"));
+    }
+
+    @Test
+    void readsAndSetsAProperty() {
+        assertEquals("0.11.5", editor.property(PINNED_POM, "jjwt.version"));
+        assertNull(editor.property(PINNED_POM, "project.version"));
+        assertEquals(PINNED_POM.replace("0.11.5", "0.12.6"), editor.setProperty(PINNED_POM, "jjwt.version", "0.12.6"));
+        assertNull(editor.setProperty(PINNED_POM, "missing.version", "1.0.0"));
+    }
+
     @Test
     void setsParentVersionInPlaceLeavingEverythingElseIntact() {
         String updated = editor.setSpringBootParentVersion(PARENT_POM, "3.3.2");
