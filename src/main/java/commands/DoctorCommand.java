@@ -30,7 +30,7 @@ public class DoctorCommand implements Callable<Integer> {
 
     private boolean check(String label, String... command) {
         try {
-            ProcessUtils.Result result = ProcessUtils.runCapturing(command);
+            ProcessUtils.Result result = ProcessUtils.runCapturing(null, command);
             if (result.exitCode() == 0) {
                 Ansi.success(label + ": " + result.output().lines().findFirst().orElse("").trim());
                 return true;
