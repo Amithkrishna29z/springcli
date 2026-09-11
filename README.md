@@ -57,8 +57,9 @@ override with `--deps` in non-interactive mode.
   declares, and check whether a newer Spring Boot version is available.
 - ⬆️ **Upgrade Spring Boot** (`upgrade`) — bump the `spring-boot-starter-parent` version in your
   `pom.xml` to the latest (or a pinned `--to`) release, in place.
-- 🛡️ **Vulnerability audit** (`audit`) — check pinned dependency versions against the free
-  [OSV](https://osv.dev) database; exits non-zero on findings so it works as a CI gate.
+- 🛡️ **Vulnerability audit** (`audit`) — resolve every dependency your app really ships (via Maven)
+  and check it against the free [OSV](https://osv.dev) database, then suggest the smallest Spring
+  Boot upgrade that fixes the findings. `--fail-on`, JSON and SARIF output make it a CI gate.
 - 📦 Downloads and extracts `starter.zip`, then deletes the archive.
 - 🩺 **Environment doctor** (`doctor`) — checks Java / Maven / Git.
 - 💾 **Saved defaults** (`config`) — persist your group id, Java version, dependencies, etc.
@@ -296,18 +297,30 @@ only**, and it needs the single generated `<parent>` block.
 
 ### Audit for vulnerabilities
 
-`audit` checks your dependencies against the free, no-auth [OSV](https://osv.dev) database and prints
-any known CVEs with their severity:
+`audit` asks Maven (the project's `./mvnw`, or `mvn`) for the full resolved dependency list — every
+version the Spring Boot parent manages plus every transitive dependency — and checks it against the
+free, no-auth [OSV](https://osv.dev) database. Test-scoped dependencies are skipped. When something is
+found, it re-resolves the project with each newer Spring Boot release Initializr offers and suggests
+the smallest upgrade that fixes it:
 
 ```bash
-springcli audit                # exits 1 if vulnerabilities are found, 0 if clean
-springcli audit -f path/to/pom.xml
+springcli audit                                # full audit; exits 1 on findings, 0 if clean
+springcli audit --fail-on high                 # fail only for high/critical findings
+springcli audit --format sarif > audit.sarif   # for GitHub code scanning (also: --format json)
+springcli audit --no-resolve                   # skip Maven; check only versions written in the pom
 ```
 
-The non-zero exit on findings makes it drop-in for a CI step. Scope: `audit` checks dependencies that
-declare a concrete `<version>`. Spring-managed starters have no explicit version in the pom (they're
-governed by your Spring Boot version), so those aren't individually queried — keep Boot current with
-`outdated` to pick up the managed set's security fixes.
+```
+✗ org.apache.tomcat.embed:tomcat-embed-core:10.1.x  (via spring-boot-starter-web)
+    [HIGH] CVE-… (GHSA-…)
+✗ 3 known vulnerabilities across 2 dependencies.
+Fix: Spring Boot 3.3.2 → 3.3.5 fixes 3 of 3.  Run: springcli upgrade --to 3.3.5
+```
+
+Exit codes: `0` nothing at or above `--fail-on` (default `low`), `1` findings, `2` the audit couldn't
+run (Maven failed, or OSV was unreachable). Findings OSV gives no severity for always count. It needs
+Maven (or the project's wrapper) and network access; in a multi-module build, run `mvn install` first
+if modules depend on each other.
 
 ### Search dependencies
 

@@ -50,10 +50,14 @@ public final class ProcessUtils {
     /**
      * Runs {@code command}, capturing its combined output, and waits for it to finish.
      *
+     * @param workingDir the directory to run in, or {@code null} for the current one
      * @throws IOException if the command can't be started (e.g. it isn't on the PATH)
      */
-    public static Result runCapturing(String... command) throws IOException, InterruptedException {
-        Process process = new ProcessBuilder(platformCommand(command)).redirectErrorStream(true).start();
+    public static Result runCapturing(Path workingDir, String... command) throws IOException, InterruptedException {
+        Process process = new ProcessBuilder(platformCommand(command))
+                .directory(workingDir == null ? null : workingDir.toFile())
+                .redirectErrorStream(true)
+                .start();
         String output = new String(process.getInputStream().readAllBytes());
         return new Result(process.waitFor(), output);
     }

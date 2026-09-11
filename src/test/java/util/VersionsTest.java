@@ -2,6 +2,9 @@ package util;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -28,6 +31,13 @@ class VersionsTest {
     void isNewerIgnoresPreReleaseSuffix() {
         assertTrue(Versions.isNewer("1.3.0-rc1", "1.2.0"));
         assertFalse(Versions.isNewer("1.2.0-rc1", "1.2.0"));
+    }
+
+    @Test
+    void compareSortsOldestFirst() {
+        List<String> versions = new ArrayList<>(List.of("3.4.1", "3.3.10", "3.3.2"));
+        versions.sort(Versions::compare);
+        assertEquals(List.of("3.3.2", "3.3.10", "3.4.1"), versions);
     }
 
     @Test

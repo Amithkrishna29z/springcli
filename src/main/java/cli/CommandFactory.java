@@ -37,7 +37,7 @@ public class CommandFactory implements CommandLine.IFactory {
         register(RemoveCommand.class, () -> new RemoveCommand(services.dependencyResolver()));
         register(OutdatedCommand.class, () -> new OutdatedCommand(services.metadataService()));
         register(UpgradeCommand.class, () -> new UpgradeCommand(services.metadataService()));
-        register(AuditCommand.class, () -> new AuditCommand(services.vulnerabilityService()));
+        register(AuditCommand.class, () -> new AuditCommand(services.auditor()));
         register(SearchCommand.class, () -> new SearchCommand(services.metadataService()));
         register(ListCommand.class, () -> new ListCommand(services.metadataService()));
         register(ConfigCommand.class, () -> new ConfigCommand(services.configService()));
