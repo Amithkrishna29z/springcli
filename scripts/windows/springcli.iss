@@ -37,7 +37,9 @@ ChangesEnvironment=yes
 
 [Files]
 ; Copy the entire jpackage app-image (springcli.exe sits at its root next to the runtime).
-Source: "..\..\dist\app-image\springcli\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs
+; ignoreversion: jpackage stamps the same file versions across builds, so a version compare would
+; skip replacing them and a reinstall would leave the old payload in place.
+Source: "..\..\dist\app-image\springcli\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Tasks]
 Name: addtopath; Description: "Add springcli to the system PATH (recommended)"
@@ -51,6 +53,7 @@ Root: HKLM; Subkey: "SYSTEM\CurrentControlSet\Control\Session Manager\Environmen
 [Code]
 const
   EnvKey = 'SYSTEM\CurrentControlSet\Control\Session Manager\Environment';
+  LegacyKey = 'SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\springcli_is1';
 
 { True when the given directory is not already on the machine PATH. }
 function NeedsAddPath(Dir: string): Boolean;
@@ -82,5 +85,35 @@ begin
   begin
     Delete(OrigPath, P, Length(';' + AppDir));
     RegWriteExpandStringValue(HKLM, EnvKey, 'Path', OrigPath);
+  end;
+end;
+
+{ Pre-1.1.0 installers shipped without an AppId, so Windows filed that install under the key
+  'springcli_is1' rather than today's GUID. Installing over one of those looks like a brand-new
+  app: a second entry in Apps & Features and a second uninstaller next to the first one. Remove
+  the old install first so an upgrade always leaves exactly one springcli behind. }
+function LegacyUninstallString(var Cmd: string): Boolean;
+begin
+  Result := RegQueryStringValue(HKLM, LegacyKey, 'UninstallString', Cmd);
+end;
+
+function PrepareToInstall(var NeedsRestart: Boolean): String;
+var
+  Cmd: string;
+  ResultCode, Waited: Integer;
+begin
+  Result := '';
+  if not LegacyUninstallString(Cmd) then
+    exit;
+  if not Exec(RemoveQuotes(Cmd), '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART', '',
+              SW_HIDE, ewWaitUntilTerminated, ResultCode) then
+    exit;
+  { An Inno uninstaller relaunches itself from %TEMP% and the process we started returns straight
+    away, so wait for its registry entry to go before we overwrite the files it is still deleting. }
+  Waited := 0;
+  while LegacyUninstallString(Cmd) and (Waited < 30000) do
+  begin
+    Sleep(500);
+    Waited := Waited + 500;
   end;
 end;
