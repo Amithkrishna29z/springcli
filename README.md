@@ -70,6 +70,9 @@ override with `--deps` in non-interactive mode.
 - 🎨 Coloured, user-friendly progress output (auto-disabled when piped or `NO_COLOR` is set).
 - 🏛️ **Architecture scaffolding** — choose *layered*, *clean* or *hexagonal* in the wizard (or
   `--architecture`) and the matching package skeleton is created inside your base package.
+- 🗄️ **Automatic datasource configuration** — pick a database driver (PostgreSQL, MySQL, H2, …) and
+  a working `spring.datasource.*` block is written into `application.properties` for you, plus the
+  JPA settings when `data-jpa` is selected.
 - 🧩 Optional post-generation actions: `--git`, `--open` (VS Code), `--build`.
 - 🛡️ Safe ZIP extraction (path-traversal / "zip-slip" protection).
 
@@ -237,6 +240,42 @@ my-app/src/main/java/com/acme/myapp/
 ```
 
 Kotlin and Groovy projects are scaffolded under `src/main/kotlin` / `src/main/groovy` instead.
+
+### Pick a database, get a configured datasource
+
+Initializr adds the JDBC driver to your build file but leaves `application.properties` empty, so a
+project with PostgreSQL selected fails to start until you fill the datasource in by hand. `springcli`
+writes that block for you — select the driver in the wizard, or pass it in `--deps`:
+
+```bash
+springcli new shop --yes --deps web,data-jpa,postgresql
+```
+
+`shop/src/main/resources/application.properties`:
+
+```properties
+spring.application.name=shop
+
+# --- PostgreSQL (configured by springcli) ---
+spring.datasource.url=jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/shop
+spring.datasource.driver-class-name=org.postgresql.Driver
+spring.datasource.username=${DB_USERNAME:postgres}
+spring.datasource.password=${DB_PASSWORD:postgres}
+
+# JPA / Hibernate
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true
+spring.jpa.properties.hibernate.format_sql=true
+```
+
+Credentials are written as `${ENV_VAR:default}` placeholders, so the project runs against a local
+server straight away and a real deployment only has to set the environment variables — nothing
+secret ends up committed. The database name comes from your artifact id (`my-app` → `my_app`).
+
+Recognised drivers: `h2`, `hsql`, `derby`, `mysql`, `mariadb`, `postgresql`, `sqlserver`, `oracle`,
+`db2`. The JPA block is added only when `data-jpa` is among your dependencies. A project without a
+driver is left exactly as Initializr shipped it, and if you select several drivers only the first is
+configured (one `spring.datasource` can point at one server) — the CLI tells you which.
 
 ### Add dependencies to an existing project
 
@@ -476,10 +515,12 @@ commands/    NewCommand, AddCommand, RemoveCommand, DepsCommand, OutdatedCommand
 service/     InitializrClient, VulnerabilityService, UpdateService (HTTP, sharing HttpSupport),
              MetadataService (parse/cache/search/validate), DependencyResolver (ids → Maven coordinates),
              ProjectGenerator (download→extract→cleanup), ZipExtractor (safe unzip),
+             DatasourceConfigurer (writes spring.datasource.* for the selected driver),
              PomEditor (read deps via DOM, inject via text splice), PomFile (read/write a pom),
              Installer (per-OS self-update strategy: WindowsInstaller, UnixInstaller)
 prompts/     InteractiveWizard (guided prompts, dependency search & multi-select)
-model/       Metadata (Initializr client metadata), ProjectRequest (immutable, builder)
+model/       Metadata (Initializr client metadata), ProjectRequest (immutable, builder),
+             Architecture (package skeletons), Database (driver id → datasource properties)
 config/      Defaults, BuildInfo (version, filled in from pom.xml at build time)
 util/        Ansi (colour output), FileUtils, ProcessUtils, Strings, Versions
 exception/   SpringCliException hierarchy (Network/Validation/Extraction/Usage), each mapped to an exit code

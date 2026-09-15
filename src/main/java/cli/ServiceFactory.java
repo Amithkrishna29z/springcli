@@ -5,6 +5,7 @@ import audit.MavenArtifactResolver;
 import config.BuildInfo;
 import service.ArchitectureScaffolder;
 import service.ConfigService;
+import service.DatasourceConfigurer;
 import service.DependencyResolver;
 import service.DependencyUpgrader;
 import service.HttpSupport;
@@ -49,7 +50,8 @@ public class ServiceFactory {
                 : MetadataCache.onDisk(home.resolve("metadata-cache.json"), Duration.ofHours(24));
 
         this.metadataService = new MetadataService(initializrClient, cache);
-        this.projectGenerator = new ProjectGenerator(initializrClient, new ZipExtractor(), new ArchitectureScaffolder());
+        this.projectGenerator = new ProjectGenerator(
+                initializrClient, new ZipExtractor(), new ArchitectureScaffolder(), new DatasourceConfigurer());
         this.dependencyResolver = new DependencyResolver(metadataService, initializrClient);
         this.dependencyUpgrader = new DependencyUpgrader(new MavenCentralService(http, MavenCentralService.DEFAULT_REPO));
         this.configService = new ConfigService(home.resolve("config.json"));

@@ -15,12 +15,15 @@ public class ProjectGenerator {
     private final InitializrClient client;
     private final ZipExtractor zipExtractor;
     private final ArchitectureScaffolder architectureScaffolder;
+    private final DatasourceConfigurer datasourceConfigurer;
 
     public ProjectGenerator(InitializrClient client, ZipExtractor zipExtractor,
-                            ArchitectureScaffolder architectureScaffolder) {
+                            ArchitectureScaffolder architectureScaffolder,
+                            DatasourceConfigurer datasourceConfigurer) {
         this.client = client;
         this.zipExtractor = zipExtractor;
         this.architectureScaffolder = architectureScaffolder;
+        this.datasourceConfigurer = datasourceConfigurer;
     }
 
     public void generate(ProjectRequest request, Path targetDir, boolean force) {
@@ -42,6 +45,7 @@ public class ProjectGenerator {
             zipExtractor.extract(tempZip, targetDir);
 
             architectureScaffolder.scaffold(request, targetDir);
+            datasourceConfigurer.configure(request, targetDir);
         } catch (IOException e) {
 
             FileUtils.deleteQuietly(targetDir);
