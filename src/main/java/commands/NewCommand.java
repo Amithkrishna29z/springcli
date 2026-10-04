@@ -122,11 +122,11 @@ public class NewCommand implements Callable<Integer> {
         String resolvedName = name != null ? name : "demo";
         String resolvedArtifact = artifactId != null ? artifactId : resolvedName;
         String boot = bootVersion != null ? bootVersion : metadataService.getMetadata().bootVersion().defaultValue();
-        String java = firstNonBlank(javaVersion, config.getJavaVersion(), metadataService.getMetadata().javaVersion().defaultValue());
+        String java = firstNonBlank(javaVersion, config.getJavaVersion(), Defaults.JAVA_VERSION);
         String group = firstNonBlank(groupId, config.getGroupId(), "com.example");
         String lang = firstNonBlank(language, config.getLanguage(), "java");
         String pack = firstNonBlank(packaging, config.getPackaging(), "jar");
-        String buildType = firstNonBlank(type, config.getType(), "maven-project");
+        String buildType = firstNonBlank(type, config.getType(), Defaults.TYPE);
 
         List<String> deps = resolveDependencies(dependencies, config.getDependencies());
 
