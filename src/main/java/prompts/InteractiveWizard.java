@@ -61,11 +61,11 @@ public class InteractiveWizard {
         String packageName = ask("Package name", defaultPkg);
         String description = ask("Description", md.description().defaultValue());
 
-        String type = choose("Build tool", md.type(), effectiveDefault(md.type(), config.getType()));
+        String type = choose("Build tool", md.type(), effectiveDefault(md.type(), config.getType(), Defaults.TYPE));
         String language = choose("Language", md.language(), effectiveDefault(md.language(), config.getLanguage()));
         String packaging = choose("Packaging", md.packaging(), effectiveDefault(md.packaging(), config.getPackaging()));
         String bootVersion = choose("Spring Boot version", md.bootVersion(), md.bootVersion().defaultValue());
-        String javaVersion = choose("Java version", md.javaVersion(), effectiveDefault(md.javaVersion(), config.getJavaVersion()));
+        String javaVersion = choose("Java version", md.javaVersion(), effectiveDefault(md.javaVersion(), config.getJavaVersion(), Defaults.JAVA_VERSION));
         Architecture architecture = Architecture.fromId(
                 choose("Architecture", Architecture.asSelect(), Architecture.NONE.id()));
 
@@ -114,7 +114,15 @@ public class InteractiveWizard {
 
     /** @return the config value if it is a valid option for {@code field}, else the metadata default. */
     private static String effectiveDefault(Metadata.SingleSelect field, String configValue) {
-        return (configValue != null && field.isValid(configValue)) ? configValue : field.defaultValue();
+        return effectiveDefault(field, configValue, field.defaultValue());
+    }
+
+    /** @return the config value, else {@code builtIn}, else the metadata default — first valid one wins. */
+    private static String effectiveDefault(Metadata.SingleSelect field, String configValue, String builtIn) {
+        if (configValue != null && field.isValid(configValue)) {
+            return configValue;
+        }
+        return field.isValid(builtIn) ? builtIn : field.defaultValue();
     }
 
     private String choose(String label, Metadata.SingleSelect field, String defaultId) {
